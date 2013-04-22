@@ -311,20 +311,32 @@ class router
 	private function verifyInstalled()
 	{
 		$installmode = false;
+		
+		if(isset($this::$config['users']['user']) && $this::$config['users']['user'])
+		{
+			$installmode['response_message'] = 'Go into the config.php and change the node values to your liking. Also setup some user(s)
+according to the example.';
+			$installmode['mode'] = true;			
+		}
+		
 		$uri = $_SERVER['REQUEST_URI'];
 		$parts = explode('/', $uri);
 		if(in_array('public', $parts))
 		{
-			$installmode['menus'] = array();
-			$installmode['title'] = 'Installation';
-			$installmode['response_message'] = 'Setup your vhost so that the visible root directory is public or put this .htaccess file in 
-your root directory if you are running on apache servers.';
-			$installmode['content'] = '';
-			$installmode['mode'] = true;
+			if(!file_exists('.htaccess'))
+			{
+				$installmode['response_message'] = 'For added security, setup your vhost so that the visible root directory is public. 
+If you don\'t have that possibility copy the .htaccess file located under core/.htaccess to the 
+root directory.';
+				$installmode['mode'] = true;
+			}
 		}
 		
 		if($installmode['mode'])
 		{
+			$installmode['menus'] = array();
+			$installmode['title'] = 'Installation';
+			$installmode['content'] = '';
 			self::$viewport->render('page', $installmode, false);
 			self::$viewport->createPage();
 			exit;		
