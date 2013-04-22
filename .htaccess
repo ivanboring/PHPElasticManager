@@ -1,3 +1,0 @@
-Options -Indexes
-Options -ExecCGI
-AddHandler cgi-script .html
