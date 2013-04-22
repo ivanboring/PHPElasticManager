@@ -1,0 +1,18 @@
+{
+    "name": "PHPElasticManager",
+    "description": "Elasticsearch GUI interface",
+    "keywords": ["search","gui","elasticsearch"],
+    "homepage": "http://www.phpelasticmanager.org",
+    "type": "project",
+    "license": "Apache 2.0",
+    "authors": [
+        {
+            "name": "Marcus Johansson",
+            "email": "me@marcusmailbox.com",
+            "role": "developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.3"
+    }
+}
