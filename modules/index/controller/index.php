@@ -92,6 +92,8 @@ class controllerIndex extends router
 	
 	public function page_create($args)
 	{
+		$state = parent::$queryLoader->call('_cluster/state', 'GET');
+				
 		$form = new form($this->form_create_index($args));
 		
 		$form->createForm();
@@ -110,7 +112,11 @@ class controllerIndex extends router
 		$form = new form($this->form_create_index($args));
 		$results = $form->getResults();
 		
-		parent::$queryLoader->callWithCheck($results['name'], 'PUT', '', 'index/edit/' . $results['name']);
+		$data = array();
+		if($results['shards']) $data['settings']['number_of_shards'] = $results['shards'];
+		if($results['replicas']) $data['settings']['number_of_replicas'] = $results['replicas'];
+		
+		parent::$queryLoader->callWithCheck($results['name'], 'PUT', json_encode($data), 'index/edit/' . $results['name']);
 		
 		$this->redirect('index/edit/' . $results['name']);
 	}
@@ -310,6 +316,18 @@ class controllerIndex extends router
 			'_type' => 'textField',
 			'_description' => 'This is the name of the index. No whitespace allowed.'
 		);
+		
+		$form['general']['shards'] = array(
+			'_label' => 'Shards',
+			'_type' => 'textField',
+			'_description' => 'This amount of shards. Leave empty for default.'
+		);
+
+		$form['general']['replicas'] = array(
+			'_label' => 'Replicas',
+			'_type' => 'textField',
+			'_description' => 'The amount of replicas. Leave empty for default.'
+		);				
 		
 		$form['general']['submit'] = array(
 			'_value' => 'Create index',

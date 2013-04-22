@@ -19,6 +19,6 @@ $config['servers']['port'] = '9200';
  * The users that are allowed in. Format 'username' => 'password'
  */
 $config['users'] = array(
-	'test' => 'arneweise'
+	'user' => 'password'
 );
 ?>

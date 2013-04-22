@@ -46,8 +46,10 @@ class controllerLeftblock extends router
 			$index[$indexname]['name'] = $indexname;
 			$index[$indexname]['data'] = $data;
 			
-			$args['indexes'][] = $this->renderPart('leftblock_index', $index[$indexname]);
+			$args['indexes'][$indexname] = $this->renderPart('leftblock_index', $index[$indexname]);
 		}
+		
+		ksort($args['indexes']);
 		
 		$vars['content'] = $this->renderPart('leftblock', $args);
 		$vars['title'] = 'Left Block';
