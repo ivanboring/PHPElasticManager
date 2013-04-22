@@ -20,12 +20,14 @@ class router
 		self::$viewport = new viewport();
 		self::$config = $config;
 		
+		// Verify that it's installed
+		$this->verifyInstalled();
+			
 		$location = $this->getLocation();
 
 		// Verify that the file exists
 		$this->verifyClassExists($location['master']);
-		
-				
+	
 		// If we are not in query, remove all instances of manual queries
 		$response_message = '';
 		if($location['master'] != 'query')
@@ -304,6 +306,29 @@ class router
 			$i++;
 		}
 		return $output;
+	}
+
+	private function verifyInstalled()
+	{
+		$installmode = false;
+		$uri = $_SERVER['REQUEST_URI'];
+		$parts = explode('/', $uri);
+		if(in_array('public', $parts))
+		{
+			$installmode['menus'] = array();
+			$installmode['title'] = 'Installation';
+			$installmode['response_message'] = 'Setup your vhost so that the visible root directory is public or put this .htaccess file in 
+your root directory if you are running on apache servers.';
+			$installmode['content'] = '';
+			$installmode['mode'] = true;
+		}
+		
+		if($installmode['mode'])
+		{
+			self::$viewport->render('page', $installmode, false);
+			self::$viewport->createPage();
+			exit;		
+		}
 	}
 }
 ?>
