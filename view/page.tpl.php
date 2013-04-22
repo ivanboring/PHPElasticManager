@@ -37,6 +37,7 @@
 		<li><?php echo l($values['path'], $values['title']); ?></li>
 	<?php } ?>
 	</ul>
+	
 	</div>
 </div>
 
@@ -53,6 +54,8 @@
 		</div>
 	<?php endif; ?>
 	<?php echo $vars['content']; ?>
+	
+	<div class="external"><a href="http://www.phpelasticmanager.org">http://www.phpelasticmanager.org - GUI elasticsearch admin tool</a></div>
 	</div>
 </div>
 

@@ -152,6 +152,14 @@ input[type="checkbox"], input[type="radio"] {
 	border-right: 1px solid #777;
 }
 
+.external {
+	width: 100%;
+	padding: 20px 0;
+	clear: both;
+	text-align: center;
+	font-size: 10px;
+}
+
 .button {
 	 /*border-radius*/
     -webkit-border-radius: 5px;
