@@ -170,7 +170,7 @@ class query extends router
 	 */
 	private function trimData($json)
 	{
-		return str_replace(array("\t","\n"," ", "\r\n", "\r"), "", $json);
+		return str_replace(array("\t","\n", "\r\n", "\r"), "", $json);
 	}
 }
 

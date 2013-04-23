@@ -32,8 +32,6 @@ class controllerDocument extends router
 	{
 		$link = implode('/', $args);
 		
-		$args['data'] = parent::$queryLoader->call($args[0] . '/' . $args[1] . '/' . $args[2], 'GET');
-
 		$state = parent::$queryLoader->call('_cluster/state', 'GET');
 		
 		if(!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]]))
@@ -41,8 +39,18 @@ class controllerDocument extends router
 			trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
 		}
 		
+		$fields[] = '_parent';
+		foreach($state['metadata']['indices'][$args[0]]['mappings'][$args[1]]['properties'] as $field => $data)
+		{
+			$fields[] = $field;
+		}
+
 		$args['mappings'] = $state['metadata']['indices'][$args[0]]['mappings'][$args[1]];
-				
+
+		$result = parent::$queryLoader->call($args[0] . '/' . $args[1] . '/_search', 'POST', '{"fields":' . json_encode($fields) . ',"query":{"ids":{"values":["' . $args[2] . '"]}},"from": "0","size": "1"}');
+		
+		$args['data'] = $result['hits']['hits'][0];
+
 		$form = new form($this->form_create_document($args));
 		
 		$form->createForm();
@@ -85,20 +93,23 @@ class controllerDocument extends router
 	{
 		$form = new form($this->form_create_document($args));
 		$results = $form->getResults();
-		
-		$id = $results['_id'] ? $results['_id'] : '';
-		$_SESSION['create_another'] = $results['create_another'];
+
+		$id = $results['_id'];
+		$_SESSION['create_another'] = isset($results['create_another']) && $results['create_another'] ? 1 : 0;
 		
 		$idprint = '';
 		if($id) $idprint = '/' . $id;
-				
-		$url = $results['index'] . '/' . $results['document_type'] . $idprint;
+		
+		$parent = isset($results['_parent']) && $results['_parent'] ? '?parent=' . $results['_parent'] : '';
+
+		$url = $results['index'] . '/' . $results['document_type'] . $idprint . $parent;
 		
 		unset($results['_id']);
 		unset($results['submit']);
 		unset($results['index']);
 		unset($results['document_type']);
 		unset($results['create_another']);
+		unset($results['_parent']);
 		
 		foreach($results as $key => $result)
 		{
@@ -287,9 +298,9 @@ class controllerDocument extends router
 					$form['doc'][$name]['_value'] = $data['null_value'];
 				}
 				
-				if(isset($args['data']['_source'][$name]))
+				if(isset($args['data']['fields'][$name]))
 				{
-					$form['doc'][$name]['_value'] = $args['data']['_source'][$name];
+					$form['doc'][$name]['_value'] = $args['data']['fields'][$name];
 				}
 				
 				switch($data['type'])
@@ -311,7 +322,17 @@ class controllerDocument extends router
 	
 			}
 		}
-
+		
+		if(isset($args['mappings']['_parent']))
+		{
+			$form['doc']['_parent'] = array(
+				'_type' => 'textField',
+				'_label' => 'Parent id',
+				'_description' => 'If you want to make this a child, specify the parent id.',
+				'_value' => isset($args['data']['fields']['_parent']) ? $args['data']['fields']['_parent'] : ''
+			);
+		}
+				
 		if(isset($args[2]))
 		{
 			$form['doc']['delete'] = array(

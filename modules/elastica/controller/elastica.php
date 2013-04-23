@@ -355,11 +355,11 @@ require_once(\'vendor/autoload.php\');' . "\n\n";
 					$replacepattern[] = $parts[0] . '|-|' . $val;
 				}
 				$key = implode('","', $replacepattern);
-				$json = str_replace('["' . $key . '"]', "' . json_encode(self::" . $parts[0] . ") . '", $json);
+				$json = str_replace('["' . $key . '"]', "' . json_encode(\$this->" . str_replace('$', '', $parts[0]) . ") . '", $json);
 			}
 			else 
 			{
-				$json = str_replace($key, "' . self::" . $parts[0] . " . '", $json);	
+				$json = str_replace($key, "' . \$this->" . str_replace('$', '', $parts[0]) . " . '", $json);	
 			}
 		}
 		
@@ -396,7 +396,7 @@ require_once(\'vendor/autoload.php\');' . "\n\n";
 			$output .= "\t */\n";
 			$output .= "\tpublic function set_$trimmedkey(\$value)\n";
 			$output .= "\t{\n";
-			$output .= "\t\tself::\$$trimmedkey = \$value;\n";
+			$output .= "\t\t\$this->$trimmedkey = \$value;\n";
 			$output .= "\t}\n";
 		}
 		

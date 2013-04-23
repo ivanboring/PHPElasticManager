@@ -204,7 +204,6 @@ input[type="checkbox"], input[type="radio"] {
 	margin-left: 300px;
 }
 
-
 .leftMenu {
 	width: 300px;
 	height: 100%;
@@ -504,4 +503,12 @@ table tr.fulldocument {
 .response_message pre {
 	margin: 0;
 	width: 800px;
+}
+
+#create_index .submit {
+	clear: both;
+}
+
+#create_index #submit {
+	width: auto;
 }

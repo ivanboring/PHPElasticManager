@@ -185,6 +185,12 @@ class controllerIndex extends router
 		$vars['mappings'] = $mapping;
 		$vars['name'] = $args[0];
 		
+		$vars['types'][''] = 'none';
+		foreach($mapping as $key => $value)
+		{
+			$vars['types'][$key] = $key;
+		}
+		
 		$form = new form($this->form_create_document_type($vars));
 		
 		$form->createForm();
@@ -204,6 +210,36 @@ class controllerIndex extends router
 		
 		$data[$results['name']] = array();
 		$data[$results['name']]['_source']['enabled'] = $results['source'];
+		$data[$results['name']]['_index']['enabled'] = $results['index'];
+		$data[$results['name']]['_type']['index'] = $results['type_index'];
+		$data[$results['name']]['_type']['store'] = $results['type_store'];
+		$data[$results['name']]['_size']['index'] = $results['size_index'];
+		$data[$results['name']]['_size']['store'] = $results['size_store'];
+		$data[$results['name']]['_id']['index'] = $results['id_analyzed'];
+		$data[$results['name']]['_id']['store'] = $results['id_store'];
+		$data[$results['name']]['_id']['path'] = $results['id_path'];	
+		
+		if($results['parent'])
+		{
+			$data[$results['name']]['_parent']['type'] = $results['parent'];
+		}
+		
+		if($results['timestamp_enable'] == 'yes')
+		{
+			$data[$results['name']]['_timestamp']['enabled'] = $results['timestamp_enable'];
+			$data[$results['name']]['_timestamp']['store'] = $results['timestamp_store'];
+			$data[$results['name']]['_timestamp']['index'] = $results['timestamp_analyzed'];
+			$data[$results['name']]['_timestamp']['path'] = $results['timestamp_path'];
+			$data[$results['name']]['_timestamp']['format'] = $results['timestamp_format'];
+		}
+		
+		if($results['ttl_enable'] == 'yes')
+		{
+			$data[$results['name']]['_ttl']['enabled'] = $results['ttl_enable'];
+			$data[$results['name']]['_ttl']['store'] = $results['ttl_store'];
+			$data[$results['name']]['_ttl']['index'] = $results['ttl_analyzed'];
+			$data[$results['name']]['_ttl']['default'] = $results['ttl_default'];
+		}			
 		
 		$url = $args[0] .'/' . $results['name'] . '/_mapping';
 		
@@ -386,27 +422,212 @@ class controllerIndex extends router
 				'required' => true
 			),
 			'_type' => 'textField',
-			'_description' => 'This is the name of the document type. No whitespace allowed.'
+		);
+
+		$form['general']['parent'] = array(
+			'_type' => 'fieldset'
+		);
+						
+		$form['general']['parent']['parent'] = array(
+			'_label' => 'Parent',
+			'_type' => 'select',
+			'_options' => $args['types'],
+			'_value' => ''
+		);
+		
+		$form['general']['index'] = array(
+			'_type' => 'fieldset'
+		);
+								
+		$form['general']['index']['index'] = array(
+			'_label' => 'Enable index',
+			'_type' => 'radios',
+			'_options' => array(
+				true => 'True',
+				false => 'False'
+			),
+			'_value' => false
 		);
 		
 		$form['general']['source'] = array(
-			'_label' => 'Store source',
+			'_type' => 'fieldset'
+		);
+								
+		$form['general']['source']['source'] = array(
+			'_label' => 'Enable source',
 			'_type' => 'radios',
-			'_description' => 'The _source field is an automatically generated field that stores the actual JSON that was used as the indexed document. It is not indexed (searchable), just stored. When executing “fetch” requests, like get or search, the _source field is returned by default.
-
-<p>Though very handy to have around, the source field does incur storage overhead within the index. For this reason, it can be disabled.</p>',
 			'_options' => array(
 				true => 'True',
 				false => 'False'
 			),
 			'_value' => true
 		);
-
 		
+		$form['general']['timestamp'] = array(
+			'_type' => 'fieldset'
+		);
+		
+		$form['general']['timestamp']['timestamp_enable'] = array(
+			'_label' => 'Enable _timestamp',
+			'_type' => 'radios',
+			'_options' => array(
+				'yes' => 'yes',
+				'no' => 'no'
+			),
+			'_value' => 'no'
+		);		
+
+		$form['general']['timestamp']['timestamp_store'] = array(
+			'_label' => 'Store _timestamp',
+			'_type' => 'radios',
+			'_options' => array(
+				'yes' => 'yes',
+				'no' => 'no'
+			),
+			'_value' => 'no'
+		);
+		
+		$form['general']['timestamp']['timestamp_analyzed'] = array(
+			'_label' => 'Analyze _timestamp',
+			'_type' => 'radios',
+			'_options' => array(
+				'analyzed' => 'analyzed',
+				'not_analyzed' => 'not analyzed'
+			),
+			'_value' => 'not_analyzed'
+		);
+
+		$form['general']['timestamp']['timestamp_path'] = array(
+			'_label' => 'Path _timestamp',
+			'_type' => 'textField',
+		);		
+		
+		$form['general']['timestamp']['timestamp_format'] = array(
+			'_label' => 'Format _timestamp',
+			'_type' => 'textField',
+		);
+						
+		$form['general']['type'] = array(
+			'_type' => 'fieldset'
+		);
+		
+		$form['general']['type']['type_index'] = array(
+			'_label' => 'Index _type',
+			'_type' => 'radios',
+			'_options' => array(
+				'yes' => 'yes',
+				'no' => 'no'
+			),
+			'_value' => 'yes'
+		);		
+
+		$form['general']['type']['type_store'] = array(
+			'_label' => 'Store _type',
+			'_type' => 'radios',
+			'_options' => array(
+				'yes' => 'yes',
+				'no' => 'no'
+			),
+			'_value' => 'no'
+		);
+
+		$form['general']['size'] = array(
+			'_type' => 'fieldset'
+		);
+								
+		$form['general']['size']['size_enabled'] = array(
+			'_label' => 'Enable _size',
+			'_type' => 'radios',
+			'_options' => array(
+				true => 'True',
+				false => 'False'
+			),
+			'_value' => false
+		);
+		
+		$form['general']['size']['size_store'] = array(
+			'_label' => 'Store _size',
+			'_type' => 'radios',
+			'_options' => array(
+				'yes' => 'yes',
+				'no' => 'no'
+			),
+			'_value' => 'no'
+		);
+
+		$form['general']['ttl'] = array(
+			'_type' => 'fieldset'
+		);
+		
+		$form['general']['ttl']['ttl_enable'] = array(
+			'_label' => 'Enable _ttl',
+			'_type' => 'radios',
+			'_options' => array(
+				'yes' => 'yes',
+				'no' => 'no'
+			),
+			'_value' => 'no'
+		);		
+
+		$form['general']['ttl']['ttl_store'] = array(
+			'_label' => 'Store _timestamp',
+			'_type' => 'radios',
+			'_options' => array(
+				'yes' => 'yes',
+				'no' => 'no'
+			),
+			'_value' => 'yes'
+		);
+		
+		$form['general']['ttl']['ttl_analyzed'] = array(
+			'_label' => 'Analyze _timestamp',
+			'_type' => 'radios',
+			'_options' => array(
+				'analyzed' => 'analyzed',
+				'not_analyzed' => 'not analyzed'
+			),
+			'_value' => 'not_analyzed'
+		);
+
+		$form['general']['ttl']['ttl_default'] = array(
+			'_label' => 'Default _timestamp',
+			'_type' => 'textField',
+		);	
+							
+		$form['general']['id'] = array(
+			'_type' => 'fieldset'
+		);
+		
+		$form['general']['id']['id_analyzed'] = array(
+			'_label' => 'Analyze _id',
+			'_type' => 'radios',
+			'_options' => array(
+				'analyzed' => 'analyzed',
+				'not_analyzed' => 'not analyzed'
+			),
+			'_value' => 'not_analyzed'
+		);		
+
+		$form['general']['id']['id_store'] = array(
+			'_label' => 'Store _id',
+			'_type' => 'radios',
+			'_options' => array(
+				'yes' => 'yes',
+				'no' => 'no'
+			),
+			'_value' => 'no'
+		);
+		
+		$form['general']['id']['id_path'] = array(
+			'_label' => 'Path _id',
+			'_type' => 'textField',
+		);
+				
 		$form['general']['submit'] = array(
 			'_value' => 'Create document type',
 			'_type' => 'submit'
 		);
+		
 		return $form;		
 	}
 
