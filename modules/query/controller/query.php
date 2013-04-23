@@ -223,20 +223,68 @@ class controllerQuery extends router
 		foreach($state['metadata']['indices'][$args[0]]['mappings'] as $key => $data)
 		{
 			$types[] = $key;
-			foreach($data['properties'] as $field => $fielddata)
-			{
-				$fields[] = $field;
-			}
+			$fields[$key] = $this->getValueFields($data);
 		}
 		
+		foreach($fields as $key => $value)
+		{
+			foreach($value as $type => $data)
+			{
+				foreach($data as $datafield)
+				{
+					$newfields[] = $datafield;
+				}
+			}
+		}
+				
 		$args['types'] = json_encode($types);
-		$args['fields'] = json_encode($fields);
+		$args['fields'] = json_encode($newfields);
 		$args['analyzers'] = json_encode($analyzers);
 		$args['indexes'] = json_encode($indexes);
 		$vars['javascript'][] = 'custom/es_builder.js';
 		$vars['content'] = $this->renderPart('query_builder', $args);
 		$vars['title'] = 'Searchquery builder';
 		return $vars;
+	}
+
+	private function getValueFields($properties, &$array = array(), $level = 0, $keyname = '')
+	{
+		$nested = array();
+
+		if(isset($properties['properties']))
+		{
+			foreach($properties['properties'] as $name => $values)
+			{
+				if(isset($values['properties']) || $values['type'] == 'nested' || $values['type'] == 'object')
+				{
+					$array[$name]['name'] = $name;
+					$this->getValueFields($values, $array, 1, $name);
+				}
+				else 
+				{
+					$array[$keyname]['fields'][] = array('name' => $name, 'type' => $values['type']);
+				}
+				if(!$level)
+				{
+					$prefix = '';
+					foreach($array as $key => $value)
+					{
+						$prefix .= $key . '.';
+						if(isset($value['fields']))
+						{
+							foreach($value['fields'] as $field)
+							{
+								$nested[$field['type']][] = $prefix . $field['name'];
+							}
+						}
+						
+					}
+					unset($array);
+				}				
+			}
+		}
+
+		return $nested;
 	}
 
 	public function page_search_json($args)

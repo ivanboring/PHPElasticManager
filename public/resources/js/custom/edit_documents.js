@@ -9,4 +9,11 @@ $(document).ready(function(){
 		index = url.split('/');
 		window.location.href='?q=document/delete_document/' + index[2] + '/' + index[3] + '/' + index[4];
 	});
+	
+	$('.form-nested .button').live('click', function() {
+		var id = $(this).parent().attr('id');
+		$.getJSON('?q=document/form_nested/books/books/' + id, function(data) {
+			$('#' + id + ' .data').html(data.form + $('#' + id + ' .data').html());
+		});
+	});
 });

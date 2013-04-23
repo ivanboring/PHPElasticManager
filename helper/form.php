@@ -43,7 +43,16 @@ class form extends router
 		$this->iterateFormFields($form);
 		
 	}
+	
+	public function createFields()
+	{
+		$form = self::$form;
+		unset($form['_init']);
 
+		$this->iterateFormFields($form);
+		
+		return self::$output;
+	}
 
 	public function renderForm()
 	{
@@ -62,6 +71,12 @@ class form extends router
 		unset($_SESSION['form_id_' . $form['_init']['name'] . '_values']);
 		unset($results['form_id']);
 		return $results;
+	}
+	
+	private function addNested($vars)
+	{
+		self::$output .= '<div id="' . $vars['_name'] . '" class="form-nested"><h3>';
+		self::$output .= $vars['_name'] . '</h3><div class="data"></div><span class="button">+ Add ' . $vars['_name'] . ' object</span></div>';
 	}
 	
 	private function addTextField($vars)
@@ -179,6 +194,9 @@ class form extends router
 					break;
 				case 'textField':
 					$this->addTextField($value);
+					break;
+				case 'nested':
+					$this->addNested($value);
 					break;
 				case 'password':
 					$this->addPassword($value);

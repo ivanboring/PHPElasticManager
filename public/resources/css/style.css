@@ -190,6 +190,9 @@ input[type="checkbox"], input[type="radio"] {
     background: -ms-linear-gradient(top, rgba(55,148,216,1) 0%,rgba(3,81,184,1) 100%);
     background: linear-gradient(top, rgba(55,148,216,1) 0%,rgba(3,81,184,1) 100%);
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3794d8', endColorstr='#0351b8',GradientType=0 );	
+    filter:alpha(opacity=100); 
+    opacity:1;
+    cursor: pointer;
 }
 
 .close, .close:hover {
@@ -509,10 +512,43 @@ table tr.fulldocument {
 	width: 800px;
 }
 
-#create_index .submit {
+.form-nested {
+	border: 2px solid #444;
+	padding: 20px;
+	margin: 10px 0;
+}
+
+#create_index .submit, #create_field .submit {
 	clear: both;
 }
 
 #create_index #submit {
 	width: auto;
 }
+
+#create_field .input-checkbox-store, #create_field .input-checkbox-include_in_all,
+#create_field #na, #create_field .input-term_vector,
+#create_field .input-boost, #create_field .input-ignore_above,
+#create_field .input-position_offset_gap, #create_field .input-null_value,
+#create_field .input-omit_norm, #create_field .input-index_options,
+#create_field .input-precision_step, #create_field .input-ignore_malformed,
+#create_field .input-format, #create_field .input-include_in_parent,
+#create_field .input-include_in_root, #create_field .input-path,
+#create_field .input-lat_lon, #create_field .input-geohash,
+#create_field .input-geohash_precision, #create_field .input-tree,
+#create_field .input-precision, #create_field .input-tree_levels,
+#create_field .input-distance_error_pct
+{
+	display: none;
+}
+
+#create_document fieldset fieldset
+{
+	width: 670px;
+}
+
+#create_document fieldset fieldset fieldset
+{
+	width: 570px;
+}
+

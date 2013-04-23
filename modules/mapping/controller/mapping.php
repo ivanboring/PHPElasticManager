@@ -79,7 +79,7 @@ class controllerMapping extends router
 	
 	public function page_create_analyzer_post($args)
 	{
-		$form = new form($this->form_create_field($args));
+		$form = new form($this->form_create_analyzer($args));
 		$results = $form->getResults();
 		
 		$mapping = $this->createMapping($results);
@@ -109,14 +109,16 @@ class controllerMapping extends router
 				if(!in_array($name, $args['analyzers'])) $args['analyzers'][] = $name;
 			}
 		}
-		
+
+		$args['nested'] = $this->getNested($state['metadata']['indices'][$args[0]]['mappings'][$args[1]]);
+				
 		$form = new form($this->form_create_field($args));
 		
 		$form->createForm();
 		
 		$arguments['field'] = $args[0];
 		$arguments['form'] = $form->renderForm();
-		$vars['javascript'][] = 'custom/es_field.js';
+		$vars['javascript'][] = 'custom/es_fields.js';
 		$vars['javascript'][] = 'custom/forms.js';
 		$vars['content'] = $this->renderPart('mapping_create_field', $arguments);
 		$vars['title'] = 'Create field in document type: ' . $args[1];
@@ -128,7 +130,9 @@ class controllerMapping extends router
 	{
 		$form = new form($this->form_create_field($args));
 		$results = $form->getResults();
-
+		
+		$state = parent::$queryLoader->call('_cluster/state', 'GET');
+		
 		$properties[$results['name']]['type'] = $results['type'];
 		// If not include in all
 		if(!$results['include_in_all'])
@@ -178,21 +182,138 @@ class controllerMapping extends router
 			$properties[$results['name']]['null_value'] = $results['null_value'];
 		}
 
+		if($results['precision_step'])
+		{
+			$properties[$results['name']]['precision_step'] = $results['precision_step'];
+		}
+		
 		if($results['omit_norm'])
 		{
 			$properties[$results['name']]['omit_norm'] = $results['omit_norm'];
 		}
 
+		if($results['ignore_malformed'])
+		{
+			$properties[$results['name']]['ignore_malformed'] = $results['ignore_malformed'];
+		}
+
+		if($results['include_in_parent'])
+		{
+			$properties[$results['name']]['include_in_parent'] = $results['include_in_parent'];
+		}
+
+		if($results['include_in_root'])
+		{
+			$properties[$results['name']]['include_in_root'] = $results['include_in_root'];
+		}
+
+		if($results['lat_lon'])
+		{
+			$properties[$results['name']]['lat_lon'] = $results['lat_lon'];
+		}
+
+		if($results['geohash'])
+		{
+			$properties[$results['name']]['geohash'] = $results['geohash'];
+		}
+		
+		if($results['geohash_precision'])
+		{
+			$properties[$results['name']]['geohash_precision'] = $results['geohash_precision'];
+		}
+		
+		if($results['tree'])
+		{
+			$properties[$results['name']]['tree'] = $results['tree'];
+		}
+		
+		if($results['precision'])
+		{
+			$properties[$results['name']]['precision'] = $results['precision'];
+		}
+
+		
+		if($results['tree_levels'])
+		{
+			$properties[$results['name']]['tree_levels'] = $results['tree_levels'];
+		}
+				
+		if($results['geohash_precision'])
+		{
+			$properties[$results['name']]['distance_error_pct'] = $results['distance_error_pct'];
+		}
+				
+		if($results['path'])
+		{
+			$properties[$results['name']]['path'] = $results['path'];
+		}
+				
+		if($results['format'])
+		{
+			$properties[$results['name']]['format'] = $results['format'];
+		}
+					
 		if($results['index_options'])
 		{
 			$properties[$results['name']]['index_options'] = $results['index_options'];
 		}
 		
+		if($results['nest_parent'])
+		{
+			$array = explode('.', $results['nest_parent']);
+			$properties = $this->putNested($array, $properties);
+		}
+
 		$data[$results['document_type']]['properties'] = $properties;
 		
 		$url = $results['index'] .'/' . $results['document_type'] . '/_mapping';
 		
 		parent::$queryLoader->callWithCheck($url, 'PUT', json_encode($data), 'mapping/edit/' . $results['index'] . '/' . $results['document_type']);	
+	}
+
+	private function putNested($array, $properties)
+	{
+		if(count($array) == 1)
+		{
+			$output[$array[0]]['properties'] = $properties;
+		}
+		else
+		{
+			$part = array_shift($array);
+			$output[$part]['properties'] = $this->putNested($array, $properties);
+		}
+		return $output;
+	}
+	
+	private function getNested($properties, &$array = array(), $level = 0)
+	{
+		$nested = array();
+		
+		if(!$level) $nested[''] = '_root';
+		
+		if(isset($properties['properties']))
+		{
+			foreach($properties['properties'] as $name => $values)
+			{
+				if(isset($values['properties']) || $values['type'] == 'nested' || $values['type'] == 'object')
+				{
+					$array[] = $name;
+					$this->getNested($values, $array, 1);
+				}
+				if(!$level)
+				{
+					$prefix = '';		
+					foreach($array as $key)
+					{
+						$nested[$prefix . $key] = $prefix . $key;
+						$prefix .= $key . '.';
+					}
+					unset($array);
+				}				
+			}
+		}
+
+		return $nested;
 	}
 	
 	// Function to automate filter formating
@@ -978,7 +1099,17 @@ This filter handles position increments > 1 by inserting filler tokens (tokens w
 			'_type' => 'fieldset',
 			'_label' => 'Field settings'
 		);
-
+		
+		if(isset($args['nested']) && count($args['nested']) > 1)
+		{
+			$form['general']['nest_parent'] = array(
+				'_label' => 'Nest/object parent',
+				'_type' => 'select',
+				'_options' => $args['nested'],
+				'_description' => 'If you want this field to be under a nested object.'
+			);
+		}
+		
 		$form['general']['name'] = array(
 			'_label' => 'Name',
 			'_validation' => array(
@@ -1010,45 +1141,6 @@ This filter handles position increments > 1 by inserting filler tokens (tokens w
 			'_label' => 'Include in "all searches"',
 			'_description' => 'Should the field be included in the _all field (if enabled). Defaults to true or to the parent object type setting.'
 		);
-		
-		$form['general']['na'] = array(
-			'_type' => 'fieldset'
-		);
-
-		$form['general']['na']['searchable'] = array(
-			'_type' => 'checkbox',
-			'_label' => 'Searchable',
-			'_value' => true
-		);
-				
-		$form['general']['na']['not_analyzed_check'] = array(
-			'_type' => 'checkbox',
-			'_label' => 'Analyzed',
-			'_value' => true
-		);
-		
-		$options = array(
-			'default' => 'Default',
-			'standard' => 'Standard',
-			'simple' => 'Simple',
-			'whitespace' => 'Whitespace',
-			'stop' => 'Stop',
-			'keyword' => 'Keyword',
-			'pattern' => 'Pattern',
-			'language' => 'Language',
-			'snowball' => 'Snowball'
-		);
-		
-		foreach($args['analyzers'] as $name)
-		{
-			$options[$name] = $name;
-		}
-		
-		$form['general']['na']['analyzer_type'] = array(
-			'_type' => 'select',
-			'_label' => 'Analyzer',
-			'_options' => $options
-		);		
 
 		$form['general']['term_vector'] = array(
 			'_label' => 'Term vector',
@@ -1085,6 +1177,11 @@ This filter handles position increments > 1 by inserting filler tokens (tokens w
 			'_type' => 'textField'
 		);
 
+		$form['general']['precision_step'] = array(
+			'_label' => 'Precision step',
+			'_type' => 'textField'
+		);
+		
 		$form['general']['omit_norm'] = array(
 			'_label' => 'Omit norms',
 			'_type' => 'select',
@@ -1094,7 +1191,97 @@ This filter handles position increments > 1 by inserting filler tokens (tokens w
 				'true' => 'True'
 			)
 		);
+		
+		$form['general']['ignore_malformed'] = array(
+			'_label' => 'Ignore malformed',
+			'_type' => 'select',
+			'_options' => array(
+				'' => '(es default)',
+				'false' => 'False', 
+				'true' => 'True'
+			)
+		);
+		
+		$form['general']['include_in_parent'] = array(
+			'_label' => 'Include in parent',
+			'_type' => 'select',
+			'_options' => array(
+				'' => '(es default)',
+				'false' => 'False', 
+				'true' => 'True'
+			)
+		);	
 
+		$form['general']['include_in_root'] = array(
+			'_label' => 'Include in root',
+			'_type' => 'select',
+			'_options' => array(
+				'' => '(es default)',
+				'false' => 'False', 
+				'true' => 'True'
+			)
+		);
+
+		$form['general']['lat_lon'] = array(
+			'_label' => 'Lat & lon',
+			'_type' => 'select',
+			'_options' => array(
+				'' => '(es default)',
+				'false' => 'False', 
+				'true' => 'True'
+			)
+		);
+
+		$form['general']['geohash'] = array(
+			'_label' => 'Geohash',
+			'_type' => 'select',
+			'_options' => array(
+				'' => '(es default)',
+				'false' => 'False', 
+				'true' => 'True'
+			)
+		);
+
+		$form['general']['geohash_precision'] = array(
+			'_label' => 'Geohash precision',
+			'_type' => 'textField'
+		);
+
+		$form['general']['tree'] = array(
+			'_label' => 'Tree',
+			'_type' => 'select',
+			'_options' => array(
+				'' => '(es default)',
+				'geohash' => 'geohash', 
+				'quadtree' => 'quadtree'
+			)
+		);
+
+		$form['general']['precision'] = array(
+			'_label' => 'Precision',
+			'_type' => 'textField'
+		);
+
+		$form['general']['tree_levels'] = array(
+			'_label' => 'Tree levels',
+			'_type' => 'textField'
+		);
+
+		$form['general']['distance_error_pct'] = array(
+			'_label' => 'Distance error pct',
+			'_type' => 'textField'
+		);
+										
+		$form['general']['path'] = array(
+			'_label' => 'Path',
+			'_type' => 'textField'
+		);	
+
+		$form['general']['format'] = array(
+			'_label' => 'Format',
+			'_type' => 'textField'
+		);
+		
 		$form['general']['index_options'] = array(
 			'_label' => 'Indexing options',
 			'_type' => 'select',
@@ -1105,6 +1292,45 @@ This filter handles position increments > 1 by inserting filler tokens (tokens w
 				'positions' => 'Doc numbers, term frequencies and positions'
 			)
 		);
+
+		$form['general']['na'] = array(
+			'_type' => 'fieldset'
+		);
+		
+		$form['general']['na']['searchable'] = array(
+			'_type' => 'checkbox',
+			'_label' => 'Searchable',
+			'_value' => true
+		);
+				
+		$form['general']['na']['not_analyzed_check'] = array(
+			'_type' => 'checkbox',
+			'_label' => 'Analyzed',
+			'_value' => true
+		);
+		
+		$options = array(
+			'default' => 'Default',
+			'standard' => 'Standard',
+			'simple' => 'Simple',
+			'whitespace' => 'Whitespace',
+			'stop' => 'Stop',
+			'keyword' => 'Keyword',
+			'pattern' => 'Pattern',
+			'language' => 'Language',
+			'snowball' => 'Snowball'
+		);
+		
+		foreach($args['analyzers'] as $name)
+		{
+			$options[$name] = $name;
+		}
+		
+		$form['general']['na']['analyzer_type'] = array(
+			'_type' => 'select',
+			'_label' => 'Analyzer',
+			'_options' => $options
+		);			
 
 		$form['general']['submit'] = array(
 			'_value' => 'Create field',

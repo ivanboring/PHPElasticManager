@@ -82,9 +82,85 @@ class controllerDocument extends router
 		$arguments['field'] = $args[0];
 		$arguments['form'] = $form->renderForm();
 		$vars['javascript'][] = 'custom/forms.js';
+		$vars['javascript'][] = 'custom/edit_documents.js';
 		$vars['content'] = $this->renderPart('document_create_document', $arguments);
 		$vars['title'] = 'Create document of type: ' . $args[1];
 		return $vars;
+	}
+	
+	public function page_form_nested($args)
+	{
+		$state = parent::$queryLoader->call('_cluster/state', 'GET');
+		
+		if(!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]]))
+		{
+			trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
+		}
+		
+		$args['mappings'] = $state['metadata']['indices'][$args[0]]['mappings'][$args[1]]['properties'][$args[2]];
+		
+		$form = new form($this->form_nested($args));
+
+		echo json_encode(array('form' => $form->createFields()));
+	}
+
+	private function form_nested($args)
+	{
+		$args[0] = isset($args[0]) ? $args[0] : '';
+		$args[1] = isset($args[1]) ? $args[1] : '';
+		
+		$form['_init'] = array(
+			'name' => 'create_document',
+			'action' => 'document/create_document_post/' . $args[0] . '/' . $args[1]
+		);
+
+		$form['doc'] = array(
+			'_type' => 'fieldset'
+		);
+				
+		if(isset($args['mappings']['properties']))
+		{
+			foreach($args['mappings']['properties'] as $name => $data)
+			{
+				$typename = isset($data['type']) ? $data['type'] : '';
+				$form['doc'][$name] = array(
+					'_label' =>  $name . ' (' . $typename . ')'
+				);
+				
+				if(isset($data['null_value']))
+				{
+					$form['doc'][$name]['_value'] = $data['null_value'];
+				}
+				
+				if(isset($args['data']['fields'][$name]))
+				{
+					$form['doc'][$name]['_value'] = $args['data']['fields'][$name];
+				}
+				
+				switch($typename)
+				{
+					case 'string':
+						$form['doc'][$name]['_type'] = 'textArea';
+						$form['doc'][$name]['_rows'] = 2;
+						break;
+					case 'integer':
+						$form['doc'][$name]['_type'] = 'textField';
+						break;
+					case 'float':
+						$form['doc'][$name]['_type'] = 'textField';
+						break;		
+					case 'date':
+						$form['doc'][$name]['_type'] = 'textField';
+						break;
+					default:
+						$form['doc'][$name]['_type'] = 'nested';
+						break;
+				}
+	
+			}
+		}
+		
+		return $form;		
 	}
 	
 	public function page_create_document_post($args)
@@ -258,7 +334,7 @@ class controllerDocument extends router
 		$args[1] = isset($args[1]) ? $args[1] : '';
 		
 		$form['_init'] = array(
-			'name' => 'create_field',
+			'name' => 'create_document',
 			'action' => 'document/create_document_post/' . $args[0] . '/' . $args[1]
 		);
 		
@@ -287,8 +363,9 @@ class controllerDocument extends router
 		{
 			foreach($args['mappings']['properties'] as $name => $data)
 			{
+				$typename = isset($data['type']) ? $data['type'] : '';
 				$form['doc'][$name] = array(
-					'_label' =>  $name . ' (' . $data['type'] . ')'
+					'_label' =>  $name . ' (' . $typename . ')'
 				);
 				
 				if(isset($data['null_value']))
@@ -301,7 +378,7 @@ class controllerDocument extends router
 					$form['doc'][$name]['_value'] = $args['data']['fields'][$name];
 				}
 				
-				switch($data['type'])
+				switch($typename)
 				{
 					case 'string':
 						$form['doc'][$name]['_type'] = 'textArea';
@@ -315,6 +392,9 @@ class controllerDocument extends router
 						break;		
 					case 'date':
 						$form['doc'][$name]['_type'] = 'textField';
+						break;
+					default:
+						$form['doc'][$name]['_type'] = 'nested';
 						break;
 				}
 	

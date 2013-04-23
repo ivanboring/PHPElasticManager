@@ -210,14 +210,14 @@ class controllerIndex extends router
 		
 		$data[$results['name']] = array();
 		$data[$results['name']]['_source']['enabled'] = $results['source'];
-		$data[$results['name']]['_index']['enabled'] = $results['index'];
-		$data[$results['name']]['_type']['index'] = $results['type_index'];
-		$data[$results['name']]['_type']['store'] = $results['type_store'];
-		$data[$results['name']]['_size']['index'] = $results['size_index'];
-		$data[$results['name']]['_size']['store'] = $results['size_store'];
-		$data[$results['name']]['_id']['index'] = $results['id_analyzed'];
-		$data[$results['name']]['_id']['store'] = $results['id_store'];
-		$data[$results['name']]['_id']['path'] = $results['id_path'];	
+		if($results['index']) $data[$results['name']]['_index']['enabled'] = $results['index'];
+		if($results['type_index']) $data[$results['name']]['_type']['index'] = $results['type_index'];
+		if($results['type_store']) $data[$results['name']]['_type']['store'] = $results['type_store'];
+		if($results['size_index']) $data[$results['name']]['_size']['index'] = $results['size_index'];
+		if($results['size_store']) $data[$results['name']]['_size']['store'] = $results['size_store'];
+		if($results['id_analyzed']) $data[$results['name']]['_id']['index'] = $results['id_analyzed'];
+		if($results['id_store']) $data[$results['name']]['_id']['store'] = $results['id_store'];
+		if($results['id_path']) $data[$results['name']]['_id']['path'] = $results['id_path'];	
 		
 		if($results['parent'])
 		{
@@ -443,24 +443,26 @@ class controllerIndex extends router
 			'_label' => 'Enable index',
 			'_type' => 'radios',
 			'_options' => array(
-				true => 'True',
-				false => 'False'
+				'' => 'default',
+				'true' => 'True',
+				'false' => 'False'
 			),
-			'_value' => false
+			'_value' => ''
 		);
 		
-		$form['general']['source'] = array(
+		$form['general']['thissource'] = array(
 			'_type' => 'fieldset'
 		);
 								
-		$form['general']['source']['source'] = array(
+		$form['general']['thissource']['source'] = array(
 			'_label' => 'Enable source',
 			'_type' => 'radios',
 			'_options' => array(
-				true => 'True',
-				false => 'False'
+				'' => 'default',
+				'true' => 'True',
+				'false' => 'False'
 			),
-			'_value' => true
+			'_value' => ''
 		);
 		
 		$form['general']['timestamp'] = array(
@@ -471,30 +473,33 @@ class controllerIndex extends router
 			'_label' => 'Enable _timestamp',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'yes' => 'yes',
 				'no' => 'no'
 			),
-			'_value' => 'no'
+			'_value' => ''
 		);		
 
 		$form['general']['timestamp']['timestamp_store'] = array(
 			'_label' => 'Store _timestamp',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'yes' => 'yes',
 				'no' => 'no'
 			),
-			'_value' => 'no'
+			'_value' => ''
 		);
 		
 		$form['general']['timestamp']['timestamp_analyzed'] = array(
 			'_label' => 'Analyze _timestamp',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'analyzed' => 'analyzed',
 				'not_analyzed' => 'not analyzed'
 			),
-			'_value' => 'not_analyzed'
+			'_value' => ''
 		);
 
 		$form['general']['timestamp']['timestamp_path'] = array(
@@ -515,20 +520,22 @@ class controllerIndex extends router
 			'_label' => 'Index _type',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'yes' => 'yes',
 				'no' => 'no'
 			),
-			'_value' => 'yes'
+			'_value' => ''
 		);		
 
 		$form['general']['type']['type_store'] = array(
 			'_label' => 'Store _type',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'yes' => 'yes',
 				'no' => 'no'
 			),
-			'_value' => 'no'
+			'_value' => ''
 		);
 
 		$form['general']['size'] = array(
@@ -539,20 +546,22 @@ class controllerIndex extends router
 			'_label' => 'Enable _size',
 			'_type' => 'radios',
 			'_options' => array(
-				true => 'True',
-				false => 'False'
+				'' => 'default',
+				'true' => 'True',
+				'false' => 'False'
 			),
-			'_value' => false
+			'_value' => ''
 		);
 		
 		$form['general']['size']['size_store'] = array(
 			'_label' => 'Store _size',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'yes' => 'yes',
 				'no' => 'no'
 			),
-			'_value' => 'no'
+			'_value' => ''
 		);
 
 		$form['general']['ttl'] = array(
@@ -563,30 +572,33 @@ class controllerIndex extends router
 			'_label' => 'Enable _ttl',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'yes' => 'yes',
 				'no' => 'no'
 			),
-			'_value' => 'no'
+			'_value' => ''
 		);		
 
 		$form['general']['ttl']['ttl_store'] = array(
 			'_label' => 'Store _timestamp',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'yes' => 'yes',
 				'no' => 'no'
 			),
-			'_value' => 'yes'
+			'_value' => ''
 		);
 		
 		$form['general']['ttl']['ttl_analyzed'] = array(
 			'_label' => 'Analyze _timestamp',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'analyzed' => 'analyzed',
 				'not_analyzed' => 'not analyzed'
 			),
-			'_value' => 'not_analyzed'
+			'_value' => ''
 		);
 
 		$form['general']['ttl']['ttl_default'] = array(
@@ -602,20 +614,22 @@ class controllerIndex extends router
 			'_label' => 'Analyze _id',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'analyzed' => 'analyzed',
 				'not_analyzed' => 'not analyzed'
 			),
-			'_value' => 'not_analyzed'
+			'_value' => ''
 		);		
 
 		$form['general']['id']['id_store'] = array(
 			'_label' => 'Store _id',
 			'_type' => 'radios',
 			'_options' => array(
+				'' => 'default',
 				'yes' => 'yes',
 				'no' => 'no'
 			),
-			'_value' => 'no'
+			'_value' => ''
 		);
 		
 		$form['general']['id']['id_path'] = array(
