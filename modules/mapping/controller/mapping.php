@@ -70,7 +70,7 @@ class controllerMapping extends router
 		
 		$arguments['field'] = $args[0];
 		$arguments['form'] = $form->renderForm();
-		$vars['javascript'][] = 'custom/es_fields.js';
+		$vars['javascript'][] = 'custom/es_analyzer.js';
 		$vars['javascript'][] = 'custom/forms.js';			
 		$vars['content'] = $this->renderPart('mapping_create_field', $arguments);
 		$vars['title'] = 'Create analyzer for index: ' . $args[0];		
@@ -116,7 +116,7 @@ class controllerMapping extends router
 		
 		$arguments['field'] = $args[0];
 		$arguments['form'] = $form->renderForm();
-		$vars['javascript'][] = 'custom/es_fields.js';
+		$vars['javascript'][] = 'custom/es_field.js';
 		$vars['javascript'][] = 'custom/forms.js';
 		$vars['content'] = $this->renderPart('mapping_create_field', $arguments);
 		$vars['title'] = 'Create field in document type: ' . $args[1];

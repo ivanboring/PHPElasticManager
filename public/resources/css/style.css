@@ -493,6 +493,10 @@ table tr.fulldocument {
 	overflow: auto;
 }
 
+.input-term_vector {
+	clear: both;
+}
+
 .response_message {
 	width: 800px;
 	border: 1px solid #c1ba67;

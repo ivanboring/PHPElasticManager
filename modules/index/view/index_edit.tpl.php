@@ -55,6 +55,7 @@ foreach($vars['aliases'] as $aliasname) {
 <h3>Document types:</h3>
 <ul>
 <?php
+sort($vars['mapping_types']);
 foreach($vars['mapping_types'] as $type)
 {
 	echo '<li>' . l('mapping/edit/' . $vars['name'] . '/' . $type, $type) . '</li>';
@@ -69,6 +70,7 @@ foreach($vars['mapping_types'] as $type)
 <h3>Analyzers:</h3>
 <ul>
 <?php
+sort($vars['analyzers']);
 foreach($vars['analyzers'] as $analyzer)
 {
 	echo '<li>' . l('mapping/view_analyzer/' . $vars['name'] . '/' . $analyzer, $analyzer) . '</li>';

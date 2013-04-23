@@ -57,7 +57,6 @@ class controllerDocument extends router
 
 		$arguments['field'] = $args[0];
 		$arguments['form'] = $form->renderForm();
-		$vars['javascript'][] = 'custom/es_fields.js';
 		$vars['javascript'][] = 'custom/forms.js';
 		$vars['javascript'][] = 'custom/edit_documents.js';
 		$vars['content'] = $this->renderPart('document_edit_document', $arguments);
@@ -82,7 +81,6 @@ class controllerDocument extends router
 		
 		$arguments['field'] = $args[0];
 		$arguments['form'] = $form->renderForm();
-		$vars['javascript'][] = 'custom/es_fields.js';
 		$vars['javascript'][] = 'custom/forms.js';
 		$vars['content'] = $this->renderPart('document_create_document', $arguments);
 		$vars['title'] = 'Create document of type: ' . $args[1];

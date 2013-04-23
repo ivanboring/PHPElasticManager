@@ -37,7 +37,6 @@ class controllerQuery extends router
 		$form->createForm();
 		
 		$arguments['form'] = $form->renderForm();
-		$vars['javascript'][] = 'custom/es_fields.js';
 		$vars['javascript'][] = 'custom/forms.js';
 		$vars['javascript'][] = 'custom/queryform.js';
 		
