@@ -12,8 +12,8 @@ $(document).ready(function(){
 	
 	$('.form-nested .button').live('click', function() {
 		var id = $(this).parent().attr('id');
-		$.getJSON('?q=document/form_nested/books/books/' + id, function(data) {
-			$('#' + id + ' .data').html(data.form + $('#' + id + ' .data').html());
+		$.getJSON('?q=document/form_nested/books/books/' + id.replace(/_-_/g, '.'), function(data) {
+			$('#' + id + ' .data').html($('#' + id + ' .data').html() + data.form);
 		});
 	});
 });

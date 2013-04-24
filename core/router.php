@@ -184,7 +184,7 @@ class router
 	
 	public function removeDirectoryTraversal($path)
 	{
-		return trim(str_replace('.', '', $path), '/');
+		return trim(str_replace('..', '', $path), '/');
 	}
 	
 	public function verifyClassExists($classname)
@@ -306,6 +306,46 @@ class router
 			$i++;
 		}
 		return $output;
+	}
+
+	protected function getValueFields($properties, &$array = array(), $level = 0, $keyname = '')
+	{
+		$nested = array();
+
+		if(isset($properties['properties']))
+		{
+			foreach($properties['properties'] as $name => $values)
+			{
+				if(isset($values['properties']) || $values['type'] == 'nested' || $values['type'] == 'object')
+				{
+					$array[$name]['name'] = $name;
+					$this->getValueFields($values, $array, 1, $name);
+				}
+				else 
+				{
+					$array[$keyname]['fields'][] = array('name' => $name, 'type' => $values['type']);
+				}
+				if(!$level)
+				{
+					$prefix = '';
+					foreach($array as $key => $value)
+					{
+						$prefix .= $key . '.';
+						if(isset($value['fields']))
+						{
+							foreach($value['fields'] as $field)
+							{
+								$nested[$field['type']][] = $prefix . $field['name'];
+							}
+						}
+						
+					}
+					unset($array);
+				}				
+			}
+		}
+
+		return $nested;
 	}
 
 	private function verifyInstalled()

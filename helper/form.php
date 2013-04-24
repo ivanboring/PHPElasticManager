@@ -75,7 +75,7 @@ class form extends router
 	
 	private function addNested($vars)
 	{
-		self::$output .= '<div id="' . $vars['_name'] . '" class="form-nested"><h3>';
+		self::$output .= '<div id="' . str_replace('.', '_-_', $vars['_name']) . '" class="form-nested"><h3>';
 		self::$output .= $vars['_name'] . '</h3><div class="data"></div><span class="button">+ Add ' . $vars['_name'] . ' object</span></div>';
 	}
 	
@@ -282,6 +282,7 @@ class form extends router
 				
 		$this->prefixSkeleton($vars);
 		
+		$vars['_name'] = isset($vars['_alternative_name']) ? $vars['_alternative_name'] : $vars['_name'];
 		foreach($vars['_options'] as $key => $value)
 		{
 			$checked = isset($vars['_value']) && is_array($vars['_value']) && in_array($key, $vars['_value']) ? 'checked' : ''; 
@@ -298,6 +299,7 @@ class form extends router
 				
 		$this->prefixSkeleton($vars);
 
+		$vars['_name'] = isset($vars['_alternative_name']) ? $vars['_alternative_name'] : $vars['_name'];
 		foreach($vars['_options'] as $key => $value)
 		{
 			$checked = '';
@@ -380,6 +382,7 @@ class form extends router
 		}
 
 		self::$output .= 'id="' . $vars['_name'] . '" ';
+		$vars['_name'] = isset($vars['_alternative_name']) ? $vars['_alternative_name'] : $vars['_name'];
 		self::$output .= 'name="' . $vars['_name'] . '" ';		
 	}
 	

@@ -96,12 +96,25 @@ class controllerDocument extends router
 		{
 			trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
 		}
-		
-		$args['mappings'] = $state['metadata']['indices'][$args[0]]['mappings'][$args[1]]['properties'][$args[2]];
+
+		$args['mappings'] = $this->nestMapping($state['metadata']['indices'][$args[0]]['mappings'][$args[1]], explode('.', $args[2]));
 		
 		$form = new form($this->form_nested($args));
 
-		echo json_encode(array('form' => $form->createFields()));
+		echo json_encode(array('form' => $form->createFields(), 'test' => $args[2]));
+	}
+	
+	private function nestMapping($properties, $array)
+	{
+		if(count($array) == 1)
+		{
+			return $properties['properties'][$array[0]];
+		}
+		else
+		{
+			$key = array_shift($array);
+			return $this->nestMapping($properties['properties'][$key], $array);
+		}
 	}
 
 	private function form_nested($args)
@@ -123,37 +136,43 @@ class controllerDocument extends router
 			foreach($args['mappings']['properties'] as $name => $data)
 			{
 				$typename = isset($data['type']) ? $data['type'] : '';
-				$form['doc'][$name] = array(
-					'_label' =>  $name . ' (' . $typename . ')'
+
+				$newname = $typename == 'nested' ? $args[2] . '.' . $name : $args[2] . '___' . $name;
+				
+				$form['doc'][$newname] = array(
+					'_label' =>  str_replace('___', '.', $name) . ' (' . $typename . ')'
 				);
+				
+				$endbrack = strstr($args[2], '.') ? ']' : '';
+				$form['doc'][$newname]['_alternative_name'] = str_replace('.', '][', preg_replace('/\./', '[', $args[2], 1)) . $endbrack . '[' . $name . ']';
 				
 				if(isset($data['null_value']))
 				{
-					$form['doc'][$name]['_value'] = $data['null_value'];
+					$form['doc'][$newname]['_value'] = $data['null_value'];
 				}
 				
-				if(isset($args['data']['fields'][$name]))
+				if(isset($args['data']['fields'][$newname]))
 				{
-					$form['doc'][$name]['_value'] = $args['data']['fields'][$name];
+					$form['doc'][$newname]['_value'] = $args['data']['fields'][$name];
 				}
 				
 				switch($typename)
 				{
 					case 'string':
-						$form['doc'][$name]['_type'] = 'textArea';
-						$form['doc'][$name]['_rows'] = 2;
+						$form['doc'][$newname]['_type'] = 'textArea';
+						$form['doc'][$newname]['_rows'] = 2;
 						break;
 					case 'integer':
-						$form['doc'][$name]['_type'] = 'textField';
+						$form['doc'][$newname]['_type'] = 'textField';
 						break;
 					case 'float':
-						$form['doc'][$name]['_type'] = 'textField';
+						$form['doc'][$newname]['_type'] = 'textField';
 						break;		
 					case 'date':
-						$form['doc'][$name]['_type'] = 'textField';
+						$form['doc'][$newname]['_type'] = 'textField';
 						break;
 					default:
-						$form['doc'][$name]['_type'] = 'nested';
+						$form['doc'][$newname]['_type'] = 'nested';
 						break;
 				}
 	
@@ -185,11 +204,10 @@ class controllerDocument extends router
 		unset($results['create_another']);
 		unset($results['_parent']);
 		
-		foreach($results as $key => $result)
-		{
-			if($result) $postdata[$key] = $result;
-		}
-		
+		$postdata = array();
+
+		$postdata = $results;
+
 		$redirect = $_SESSION['create_another'] ? 'document/create_document/' . $args[0] . '/' . $args[1] : 'document/search_documents/' . $args[0];
 		parent::$queryLoader->callWithCheck($url, 'POST', json_encode($postdata), $redirect);	
 				
@@ -218,11 +236,22 @@ class controllerDocument extends router
 		{
 			$args['mapping_types'][$key] = $key;
 			
-			foreach($value['properties'] as $field => $value)
+			$types[] = $key;
+			$mapfields[$key] = $this->getValueFields($value);
+		}
+
+		foreach($mapfields as $key => $value)
+		{
+			foreach($value as $mapkey => $map)
 			{
-				$args['fields'][$key . '.' . $field] =  $key . '.' . $field;
+				foreach($map as $datafield)
+				{
+					$trimmed = trim($datafield, '.');
+					$newfields[$trimmed] = $trimmed;
+				}
 			}
 		}
+		$args['fields'] = $newfields;
 		$args['chosen_fields'] = $fields;
 		$form = new form($this->form_search_documents($args));
 
@@ -232,8 +261,6 @@ class controllerDocument extends router
 
 		$typestring = '';
 		if($type) $typestring = '/' . $type;
-		
-		$url = $args[0] . $typestring . '/_search';
 		
 		if($query)
 		{
@@ -247,27 +274,32 @@ class controllerDocument extends router
 		{
 			$data['query']['match_all'] = array();	
 		}
+
+		$url = $args[0] . $typestring . '/_search';
 		
 		$result = parent::$queryLoader->call($url, 'GET', json_encode($data));
-
+		
 		$i = 0;
 		$newresults = array();
 		foreach($result['hits']['hits'] as $resultdata)
-		{$link = 'document/edit_document/' . $args[0] . '/' . $resultdata['_type'] . '/' . $resultdata['_id'];
+		{
+			$link = 'document/edit_document/' . $args[0] . '/' . $resultdata['_type'] . '/' . $resultdata['_id'];
 				
 			$newresults[$i]['_id'] = l($link, $resultdata['_id']);
 			$newresults[$i]['_document'] = $resultdata;
 			
 			foreach($fields as $field)
 			{
-				$newresults[$i][$field] = '';
+				$newresults[$i][$resultdata['_type'] . '.' . $field] = '';
 			}
 			
-			foreach($resultdata['_source'] as $key => $value)
+			foreach($fields as $field)
 			{
-				if(in_array($resultdata['_type'] . '.' . $key, $fields))
+				$parts = explode('.', $field);
+				$result = $this->findResult($parts, $resultdata['_source']);
+				if($result)
 				{
-					$newresults[$i][$resultdata['_type'] . '.' . $key] = l($link, substr($value, 0, 50));
+					$newresults[$i][$resultdata['_type'] . '.' . $field] = l($link, substr($result, 0, 50));
 				}
 			}
 			$i++;
@@ -316,6 +348,19 @@ class controllerDocument extends router
 		$vars['content'] = $this->renderPart('document_search_documents', $arguments);
 		$vars['title'] = 'Search documents';
 		return $vars;
+	}
+	
+	private function findResult($value, $source)
+	{
+		if(count($value) == 1)
+		{
+			return $source[$value[0]];
+		}
+		else
+		{
+			$key = array_shift($value);
+			return $this->findResult($value, $source[$key]);
+		}
 	}
 	
 	public function page_search_documents_post($args)
