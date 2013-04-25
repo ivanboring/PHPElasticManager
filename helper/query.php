@@ -291,7 +291,7 @@ class Query extends router
             if (isset($source[$value[0]])) {
                 if (is_array($source[$value[0]])) {
                 	$source[$value[0]] = '"' . implode('","', $source[$value[0]]) . '"';
-                }
+                } 
                 return $source[$value[0]];
             } else {
                 $output = array();
