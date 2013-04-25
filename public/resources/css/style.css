@@ -73,17 +73,8 @@ input[type="checkbox"], input[type="radio"] {
 }
 
 .submit {
-	clear: both;
-}
-
-.submit {
 	float: left;
 	clear: none;
-}
-
-#fileform {
-	position: absolute;
-	top: -100px;
 }
 
 #main {
@@ -564,4 +555,10 @@ table tr.fulldocument {
 .close-nested {
 	display: inline;
 	cursor: pointer;	
+}
+
+
+#fileform {
+	position: absolute;
+	top: -100px;
 }
