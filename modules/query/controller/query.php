@@ -267,7 +267,7 @@ class controllerQuery extends router
 		
 		$output['jsonarray'] = $data; 
 		// Then do the search
-		$results = parent::$queryLoader->call('_search', 'POST', json_encode($data));
+		$results = parent::$queryLoader->call($args[0] . '/_search', 'POST', json_encode($data));
 		
 		// Make the id's clickable
 		if(isset($results['hits']['hits']))

@@ -150,8 +150,11 @@ function calculateObject(root)
 	var sendValue = Object;
 	sendValue['value'] = JSON.stringify(outputArray);
 	
+	var url = location.search;
+	index = url.split('/');
+	
 	$.ajax({
-		url: '?q=query/search_json',
+		url: '?q=query/search_json/' + index[2],
 		type: 'POST',
 		data: sendValue,
 		dataType: 'json',
