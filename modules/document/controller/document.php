@@ -144,6 +144,14 @@ class controllerDocument extends router
      */	
     public function page_create_document_post($args)
     {
+        $state = self::$query_loader->call('_cluster/state', 'GET');
+
+        if (!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]])) {
+            trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
+        }
+
+        $args['mappings'] = $state['metadata']['indices'][$args[0]]['mappings'][$args[1]];
+		    	
         $form = new form($this->form_create_document($args));
         $results = $form->getResults();
 
@@ -324,7 +332,7 @@ class controllerDocument extends router
     {
         $args[0] = isset($args[0]) ? $args[0] : '';
         $args[1] = isset($args[1]) ? $args[1] : '';
-
+		
         $form['_init'] = array(
             'name' => 'create_document',
             'action' => 'document/create_document_post/' . $args[0] . '/' . $args[1]
@@ -350,9 +358,12 @@ class controllerDocument extends router
             '_description' => 'Elasticsearch id. If not added, elasticsearch will create an automatic id.',
             '_value' => isset($args['data']['_id']) ? $args['data']['_id'] : '',
         );
-
-        $newform['doc'] = $this->create_form_field($args['mappings'], $args['data']['fields']);
-
+		
+		if (!isset($args['data']['fields'])) {
+			$args['data']['fields'] = array();
+		}
+       	$newform['doc'] = $this->create_form_field($args['mappings'], $args['data']['fields']);
+		
         $form = array_merge_recursive($form, $newform);
 
         if (isset($args['mappings']['_parent'])) {
@@ -386,7 +397,7 @@ class controllerDocument extends router
     }
 
     /**
-     * Form for a creating fields
+     * Form for creating each field in the create document form
 	 * 
      * @param array $args Form arguments
 	 * 
@@ -415,6 +426,7 @@ class controllerDocument extends router
                     case 'string':
                         $form[$name]['_type'] = 'textArea';
                         $form[$name]['_rows'] = 2;
+						$form[$name]['_label'] = $labelname . ' ("," delimiter for multiple values, eg "flight","mode")';
                         break;
                     case 'nested':
                     case 'object':
@@ -423,6 +435,7 @@ class controllerDocument extends router
                         break;
                     default:
                         $form[$name]['_type'] = 'textField';
+						$form[$name]['_label'] = $labelname . ' ("," delimiter for multiple values, eg "flight","mode")';
                         break;
                 }
 
@@ -437,6 +450,9 @@ class controllerDocument extends router
                     }
                 } else {
                     if (isset($fields[$realname])) {
+                    	if (is_array($fields[$realname])) {
+                    		$fields[$realname] = '"' . implode('","', $fields[$realname]) . '"';
+                    	}
                         $form[$name]['_value'] = $fields[$realname];
                     }
                 }

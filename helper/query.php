@@ -255,14 +255,23 @@ class Query extends router
         if (is_array($results)) {
             foreach ($results as $key => $value) {
                 if (is_integer($key)) {
-                    $output[$i] = $this->realArrays($value);
+                    $output[$i] = $this->nonAssocArrays($value);
                     $i++;
                 } else {
-                    $output[$key] = $this->realArrays($value);
+                    $output[$key] = $this->nonAssocArrays($value);
                 }
             }
         } else {
-            $output = $results;
+        	$parts = explode('","', $results);
+            $amount = count($parts);
+            if ($amount > 1) {
+				$parts[0] = ltrim($parts[0], '"');
+				$parts[$amount-1] = rtrim($parts[$amount-1], '"');
+				$output = $parts;
+			}
+			else {
+				$output = $parts[0];	
+			}
         }
 
         return $output;
@@ -280,13 +289,15 @@ class Query extends router
     {
         if (count($value) == 1) {
             if (isset($source[$value[0]])) {
+                if (is_array($source[$value[0]])) {
+                	$source[$value[0]] = '"' . implode('","', $source[$value[0]]) . '"';
+                }
                 return $source[$value[0]];
             } else {
                 $output = array();
                 foreach ($source as $key => $val) {
                     $output[] = $val[$value[0]];
                 }
-
                 return implode(', ', $output);
             }
         } else {
