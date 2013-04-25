@@ -1,36 +1,57 @@
 <?php
 
-require_once 'core/autoload.php';
-
-// Make the l a function so we don't have to think about objects in the view files
-function l($link, $html, $vars = array())
+/**
+ * The router.php keeps track of which modules to run based on the q
+ * parameter.
+ *
+ * @author Marcus Johansson <me @ marcusmailbox.com>
+ * @version 0.10-beta
+ */
+class Router
 {
-    $url = new url;
+	/**
+     * The viewport object
+     *
+     * @var viewport object
+     */
+    protected static $viewport = null;
 
-    return $url->createUrl($link, $html, $vars);
-}
+	/**
+     * The query object
+     *
+     * @var query object
+     */	
+    protected static $query_loader = null;
 
-class router
-{
-    public static $viewport = '';
-    public static $queryLoader = '';
-    public static $config = array();
+	/**
+     * The configuration array
+     *
+     * @var array
+     */		
+    protected static $config = array();
 
-    public function __construct($config)
-    {
-        self::$queryLoader = new query($config['servers']['host'], $config['servers']['port']);
-        self::$viewport = new viewport();
+	/**
+     * The main routing function. Keeps track
+	 * on which controllers and views to run.
+     *
+     * @param array $config The configuration array
+     */
+	public function route($config)
+	{
+        self::$query_loader = new Query($config['servers']['host'], $config['servers']['port']);
+        self::$viewport = new Viewport();
         self::$config = $config;
 
-        // Verify that it's installed
+        // Verify that PHPElasticManager is installed
         $this->verifyInstalled();
-
+		
+		// Get the location from the q parameter
         $location = $this->getLocation();
 
         // Verify that the file exists
         $this->verifyClassExists($location['master']);
 
-        // If we are not in query, remove all instances of manual queries
+        // If we are not in query phase, remove all instances of manual queries
         $response_message = '';
         if ($location['master'] != 'query') {
             $response_message = isset($_SESSION['query_response']) ? $_SESSION['query_response'] : '';
@@ -41,32 +62,36 @@ class router
             unset($_SESSION['query_redirect']);
         }
 
-        // Check login
+        // Check if logged in else redirect to login page
         if ($this->loggedIn() == false && $location['master'] != 'user') {
             $this->redirect('user/login');
         }
-
+		
+		// Load the controller file
         require_once 'modules/'. $location['master'] . '/controller/' . $location['master'] . '.php';
 
-        $controllername = 'controller' . $location['master'];
-
+        $controller_name = 'controller' . $location['master'];
+		
         // Load the controller
-        $controller = new $controllername();
-
+        $controller = new $controller_name();
+		
         // Check if the method exists
         if (method_exists($controller, 'page_' . $location['secondary'])) {
             // Run the controller
             $vars = $controller->{'page_' . $location['secondary']}($location['args']);
         } else {
+        	// Run index from the first parameter
             array_unshift($location['args'], $location['secondary']);
             $vars = $controller->page_index($location['args']);
         }
-
+		
+		// Get the menus from the controllers
         $vars['menus'] = $this->getMenus();
-
+		
+		// If response message exists output it
         $vars['response_message'] = '';
         if ($response_message) {
-            $vars['response_message'] = self::$queryLoader->prettyJson(json_encode($response_message));
+            $vars['response_message'] = self::$query_loader->prettyJson(json_encode($response_message));
         }
 
         // Only render if return values exists
@@ -77,32 +102,54 @@ class router
             // Always load the leftblock
             $vars['leftblock'] = '';
             if ($this->loggedIn()) {
-                $leftblock = $this->loadLeftBlock();
-                $vars['leftblock'] = $leftblock['content'];
+                $left_block = $this->loadLeftBlock();
+                $vars['leftblock'] = $left_block['content'];
             }
-
+			
+			// Render the last things
             self::$viewport->render('page', $vars, false);
             self::$viewport->createPage();
-        }
-    }
+        }		
+	}
 
+	/**
+     * This function renders and returs a view.
+	 * Uses get_called_class to know which
+	 * controller started it.
+     *
+     * @param string $view The name of the template
+	 * @param array $vars Variables that should be passed to the template
+	 * 
+	 * @return string The rendered template
+     */
     public function renderPart($view, $vars = array())
     {
         return self::$viewport->render($view, $vars, true, strtolower(str_replace('controller', '', get_called_class())));
     }
 
+	/**
+     * Loads and renders the left block
+     *
+     * @return array The rendered left block 
+     */
     public function loadLeftBlock()
     {
         require_once 'modules/leftblock/controller/leftblock.php';
 
-        $leftblock = new controllerLeftblock();
+        $left_block = new controllerLeftblock();
 
-        return $leftblock->block_create();
+        return $left_block->block_create();
     }
 
+	/**
+     * Loads all modules and check if they
+	 * want to add items to the menu
+     *
+     * @return array The menu items 
+     */
     public function getMenus()
     {
-        $startmenu = array();
+        $start_menu = array();
 
         // Load all the controllers to check for menu items if the user is logged in
         if ($this->loggedIn()) {
@@ -111,13 +158,13 @@ class router
                 if (substr($dir, 0, 1) != '.') {
                     require_once 'modules/'. $dir . '/controller/' . $dir . '.php';
 
-                    $controllername = 'controller' . $dir;
+                    $controller_name = 'controller' . $dir;
 
-                    $controller = new $controllername();
+                    $controller = new $controller_name();
 
                     if (method_exists($controller, 'menu_items')) {
                         $menu = $controller->menu_items();
-                        $startmenu[$menu['weight'] . '_' . $menu['path']] = array(
+                        $start_menu[$menu['weight'] . '_' . $menu['path']] = array(
                             'title' => $menu['title'],
                             'path' => $menu['path']
                         );
@@ -125,19 +172,29 @@ class router
                 }
             }
 
-            krsort($startmenu);
+            krsort($start_menu);
 
-            $startmenu['100_user/logout'] = array('title' => 'Logout', 'path' => 'user/logout');
+            $start_menu['100_user/logout'] = array('title' => 'Logout', 'path' => 'user/logout');
         }
 
-        return $startmenu;
+        return $start_menu;
     }
 
+	/**
+     * Checks if the user is logged in
+     *
+     * @return bool Set to true if logged in
+     */
     private function loggedIn()
     {
         return !isset($_SESSION['loggedin']) || !$_SESSION['loggedin'] ? false : true;
     }
 
+	/**
+     * Checks if the user is logged in
+     *
+     * @return array An array with master (controller), secondary (function), args (arguments)
+     */
     public function getLocation()
     {
         $query_string = $_SERVER['QUERY_STRING'];
@@ -161,6 +218,12 @@ class router
         return $output;
     }
 
+	/**
+     * This function redirects the user
+     *
+     * @param string $place The place to redirect to
+	 * @param array $querystring Additional querystring to append to the redirect
+     */
     protected function redirect($place = '', $querystring = array())
     {
         $place = $place ? $place : $_GET['q'];
@@ -171,11 +234,23 @@ class router
         exit;
     }
 
+	/**
+     * Trims and removes directory traversals from a string
+	 * 
+	 * @param string $path The path to fix
+     *
+     * @return string A fixed string
+     */
     public function removeDirectoryTraversal($path)
     {
         return trim(str_replace('..', '', $path), '/');
     }
 
+	/**
+     * Verifies if a class exists
+	 * 
+	 * @param string $classname The classname
+     */
     public function verifyClassExists($classname)
     {
         if (!file_exists('modules/' . $classname . '/controller/' . $classname . '.php')) {
@@ -184,135 +259,36 @@ class router
         }
     }
 
-    protected function getString($name, $default_value = '')
+	/**
+     * Gets the querystring value for a key
+	 * 
+	 * @param string $key The key to look for
+	 * @param string $default_value The default value if the key is empty
+     *
+     * @return string The value or default value of the key
+     */
+    protected function getString($key, $default_value = '')
     {
-        return isset($_GET[$name]) ? $_GET[$name] : $default_value;
+        return isset($_GET[$key]) ? $_GET[$key] : $default_value;
     }
 
+	/**
+     * Gets the post value for a key
+	 * 
+	 * @param string $key The key to look for
+	 * @param string $default_value The default value if the key is empty
+     *
+     * @return string The value or default value of the key
+     */
     protected function getPost($name, $default_value = '')
     {
         return isset($_POST[$name]) ? $_POST[$name] : $default_value;
     }
 
-    protected function toArray($javascriptarray, $explodeval = '.', $arrayval = '')
-    {
-        $newarray = array();
-        foreach ($javascriptarray as $partarray) {
-            foreach ($partarray as $key => $value) {
-                $parts = explode($explodeval, $key);
-
-                $array = $this->iterateToArray($parts, $value, $arrayval);
-                $newarray = array_merge_recursive($array, $newarray);
-            }
-        }
-
-        $endarray = $this->stupidIterateMakeNormalArray($newarray);
-
-        return $endarray;
-    }
-
-    protected function stupidIterateMakeNormalArray($newarray)
-    {
-        if (is_array($newarray)) {
-            $newarray = array_reverse($newarray);
-            $endarray = array();
-
-            foreach ($newarray as $key => $value) {
-                if (substr($key, 0, 6) == 'array_') {
-                    $key = (int) substr($key, 6);
-                }
-                $endarray[$key] = $this->stupidIterateMakeNormalArray($value);
-            }
-        } else {
-            $endarray = $newarray;
-        }
-
-        return $endarray;
-    }
-
-    protected function iterateToArray($array, $value, $arrayval)
-    {
-        $i = 0;
-        $make_array = false;
-
-        foreach ($array as $string) {
-            if (!$i) {
-                if ($arrayval) {
-                    if (substr($string, 0, strlen($arrayval)) == $arrayval) {
-                        $make_array = true;
-                        $newstring = substr($string, strlen($arrayval));
-                        $parts = explode('_', $newstring);
-                        $nr = (int) $parts[0];
-                        unset($parts[0]);
-                        $string = implode('_', $parts);
-                    }
-                }
-
-                array_shift($array);
-                if (count($array)) {
-                    if ($make_array) {
-                        $output['array_' . $nr][$string] = $this->iterateToArray($array, $value, $arrayval);
-                    } else {
-                        $output[$string] = $this->iterateToArray($array, $value, $arrayval);
-                    }
-
-                } else {
-                    if ($make_array) {
-                        if ($string) {
-                            $output[$nr][$string] = $value;
-
-                        } else {
-                            $output[$nr] = $value;
-                        }
-                    } else {
-                        $output[$string] = $value;
-                    }
-                }
-            }
-            $i++;
-        }
-
-        return $output;
-    }
-
-    protected function getValueFields($properties, &$array = array(), $level = 0, $keyname = '')
-    {
-        $nested = array();
-
-        if (isset($properties['properties'])) {
-            foreach ($properties['properties'] as $name => $values) {
-                if (isset($values['properties']) || $values['type'] == 'nested' || $values['type'] == 'object') {
-                    $array[$name]['name'] = $name;
-                    $this->getValueFields($values, $array, 1, $name);
-                } elseif ($values['type'] == 'multi_field') {
-                    foreach ($values['fields'] as $mfkey => $mfvalue) {
-                        $array[$name]['fields'][] = array(
-                            'name' => $name == $mfkey ? '' : $mfkey,
-                            'type' => $mfvalue['type']
-                        );
-                    }
-                } else {
-                    $array[$keyname]['fields'][] = array('name' => $name, 'type' => $values['type']);
-                }
-                if (!$level) {
-                    $prefix = '';
-                    foreach ($array as $key => $value) {
-                        $prefix .= $key . '.';
-                        if (isset($value['fields'])) {
-                            foreach ($value['fields'] as $field) {
-                                $nested[$field['type']][] = $prefix . $field['name'];
-                            }
-                        }
-
-                    }
-                    unset($array);
-                }
-            }
-        }
-
-        return $nested;
-    }
-
+	/**
+     * Checks if PHPElasticManager is correctly installed
+	 * 
+     */
     private function verifyInstalled()
     {
         $installmode = false;

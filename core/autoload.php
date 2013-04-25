@@ -1,4 +1,10 @@
 <?php
+
+/**
+ * Autoload
+ * 
+ * @param string $class_name The name of the class
+ */
 function ESManagerAutoLoad($class_name)
 {
     if (file_exists('helper/' . $class_name . '.php')) {
@@ -15,4 +21,5 @@ function ESManagerAutoLoad($class_name)
     }
 }
 
+// Start autoload
 spl_autoload_register('ESManagerAutoLoad');

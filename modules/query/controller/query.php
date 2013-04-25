@@ -42,7 +42,7 @@ class controllerQuery extends router
 
         $arguments['response'] = '';
         if (isset($_SESSION['query_response'])) {
-            $arguments['response'] = parent::$queryLoader->prettyJson(json_encode($_SESSION['query_response']));
+            $arguments['response'] = parent::$query_loader->prettyJson(json_encode($_SESSION['query_response']));
         }
 
         $vars['content'] = $this->renderPart('query_query', $arguments);
@@ -58,7 +58,7 @@ class controllerQuery extends router
         $form = new form($this->form_create_query($args));
         $results = $form->getResults();
 
-        $_SESSION['query_response'] = parent::$queryLoader->call($results['path'], $results['method'], $results['query']);
+        $_SESSION['query_response'] = parent::$query_loader->call($results['path'], $results['method'], $results['query']);
         $_SESSION['query_path'] = $results['path'];
         $_SESSION['query_method'] = $results['method'];
         $_SESSION['query_query'] = $results['query'];
@@ -173,7 +173,7 @@ class controllerQuery extends router
     public function page_query_builder($args)
     {
 
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         if (!isset($state['metadata']['indices'][$args[0]]['mappings'])) {
             trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
@@ -182,7 +182,7 @@ class controllerQuery extends router
         $fields = array();
         $types = array();
         $analyzers = array('' => 'default');
-        $array = $this->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
+        $array = parent::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
 
         $indexes = array();
         foreach ($state['metadata']['indices'] as $index => $value) {
@@ -197,7 +197,7 @@ class controllerQuery extends router
 
         foreach ($state['metadata']['indices'][$args[0]]['mappings'] as $key => $data) {
             $types[] = $key;
-            $fields[$key] = $this->getValueFields($data);
+            $fields[$key] = parent::$query_loader->getValueFields($data);
         }
 
         foreach ($fields as $key => $value) {
@@ -233,11 +233,11 @@ class controllerQuery extends router
             }
         }
 
-        $data = $this->toArray($newarray, ';', '[]');
+        $data = parent::$query_loader->toArray($newarray, ';', '[]');
 
         $output['jsonarray'] = $data;
         // Then do the search
-        $results = parent::$queryLoader->call($args[0] . '/_search', 'POST', json_encode($data));
+        $results = parent::$query_loader->call($args[0] . '/_search', 'POST', json_encode($data));
 
         // Make the id's clickable
         if (isset($results['hits']['hits'])) {

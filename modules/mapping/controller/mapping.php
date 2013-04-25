@@ -8,7 +8,7 @@ class controllerMapping extends router
 
     public function page_edit($args)
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         $variables['properties'] = array();
         if (isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]]['properties'])) {
@@ -47,8 +47,8 @@ class controllerMapping extends router
 
     public function page_view_analyzer($args)
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
-        $array = $this->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $array = parent::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
 
         if (isset($array['index']['analysis']['analyzer'])) {
             foreach ($array['index']['analysis']['analyzer'] as $name => $value) {
@@ -102,21 +102,21 @@ class controllerMapping extends router
         $mapping = $this->createMapping($results);
 
         // Close the index
-        parent::$queryLoader->call($results['index'] . '/_close', 'POST');
+        parent::$query_loader->call($results['index'] . '/_close', 'POST');
 
         // Change the mapping
         $url = $results['index'] . '/_settings';
-        parent::$queryLoader->call($url, 'PUT', json_encode($mapping));
+        parent::$query_loader->call($url, 'PUT', json_encode($mapping));
 
         // Open the index
-        parent::$queryLoader->call($results['index'] . '/_open', 'POST');
+        parent::$query_loader->call($results['index'] . '/_open', 'POST');
         $this->redirect('index/edit/' . $results['index']);
     }
 
     public function page_create_field($args)
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
-        $array = $this->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $array = parent::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
 
         $args['analyzers'] = array();
         if (isset($array['index']['analysis']['analyzer'])) {
@@ -146,7 +146,7 @@ class controllerMapping extends router
         $form = new form($this->form_create_field($args));
         $results = $form->getResults();
 
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         $properties[$results['name']]['type'] = $results['type'];
         // If not include in all
@@ -264,7 +264,7 @@ class controllerMapping extends router
 
         $url = $results['index'] .'/' . $results['document_type'] . '/_mapping';
 
-        parent::$queryLoader->callWithCheck($url, 'PUT', json_encode($data), 'mapping/edit/' . $results['index'] . '/' . $results['document_type']);
+        parent::$query_loader->callWithCheck($url, 'PUT', json_encode($data), 'mapping/edit/' . $results['index'] . '/' . $results['document_type']);
     }
 
     private function putNested($array, $properties)
@@ -293,10 +293,13 @@ class controllerMapping extends router
                 }
                 if (!$level) {
                     $prefix = '';
-                    foreach ($array as $key) {
-                        $nested[$prefix . $key . '---' . $values['type']] = $prefix . $key;
-                        $prefix .= $key . '.';
-                    }
+					if(isset($array))
+					{
+	                    foreach ($array as $key) {
+	                        $nested[$prefix . $key . '---' . $values['type']] = $prefix . $key;
+	                        $prefix .= $key . '.';
+	                    }
+					}
                     unset($array);
                 }
             }

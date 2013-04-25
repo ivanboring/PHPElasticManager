@@ -3,30 +3,29 @@
 /**
  * Query takes care of all calls to Elasticsearch
  *
- * @param string $server Elasticsearch server
- * @param string $port Elasticsearch port
- * @author Marcus Johansson
- * @version 0.1
+ * @author Marcus Johansson <me @ marcusmailbox.com>
+ * @version 0.10-beta
  */
-class query extends router
+class Query extends router
 {
-    public static $es_server;
-
     /**
      * Construnction
+	 * 
      * @param string $server
      * @param string $port
      */
     public function __construct($server = 'http://localhost', $port = '9200')
     {
-        self::$es_server = $server . ':' . $port;
+        $this->es_server = $server . ':' . $port;
     }
 
     /**
      * Checks if validation mode is on before making a call
-     * @param  string         $path
-     * @param  string         $method
-     * @param  string         $data
+	 * 
+     * @param string $path The path to call
+     * @param string $method The method to use
+     * @param string $data The data to pass
+	 * 
      * @return array/redirect
      */
     public function callWithCheck($path, $method = 'POST', $data = '', $redirect = '')
@@ -48,16 +47,18 @@ class query extends router
 
     /**
      * Makes a call to ES
-     * @param  string $path
-     * @param  string $method
-     * @param  string $data
+	 * 
+     * @param string $path The path to call
+     * @param string $method The method to use
+     * @param string $data The data to pass
+	 * 
      * @return array
      */
     public function call($path, $method = 'POST', $data = '')
     {
         $ch = curl_init();
 
-        $url = self::$es_server . '/' . trim($path, '/');
+        $url = $this->es_server . '/' . trim($path, '/');
 
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -87,9 +88,11 @@ class query extends router
     }
 
     /**
-     * We don't want to be PHP 5.4 dependent so we create a pretify JSON function.
-     * Thanks to camdagr8 who posted this to snipplr
-     * @param  string $json
+     * We don't want to be PHP 5.4 dependent so we use a pretify JSON function.
+     * Thanks to camdagr8 who posted this to snipplr. Works great!
+	 * 
+     * @param string $json
+	 * 
      * @return string
      */
     public function prettyJson($json)
@@ -145,8 +148,59 @@ class query extends router
     }
 
     /**
+     * Recursive function get the value fields from a elasticsearch
+	 * mapping array
+	 * 
+     * @param array $properties The mapping array
+	 * @param array $array An array passed/returned by reference to keep the key/value mapping
+	 * @param integer $level The level of recursion
+	 * @param string $parentname The parents name
+	 * 
+     * @return array
+     */
+    public function getValueFields($properties, &$array = array(), $level = 0, $parentname = '')
+    {
+        $nested = array();
+
+        if (isset($properties['properties'])) {
+            foreach ($properties['properties'] as $name => $values) {
+                if (isset($values['properties']) || $values['type'] == 'nested' || $values['type'] == 'object') {
+                    $array[$name]['name'] = $name;
+                    $this->getValueFields($values, $array, 1, $name);
+                } elseif ($values['type'] == 'multi_field') {
+                    foreach ($values['fields'] as $mfkey => $mfvalue) {
+                        $array[$name]['fields'][] = array(
+                            'name' => $name == $mfkey ? '' : $mfkey,
+                            'type' => $mfvalue['type']
+                        );
+                    }
+                } else {
+                    $array[$parentname]['fields'][] = array('name' => $name, 'type' => $values['type']);
+                }
+                if (!$level) {
+                    $prefix = '';
+                    foreach ($array as $key => $value) {
+                        $prefix .= $key . '.';
+                        if (isset($value['fields'])) {
+                            foreach ($value['fields'] as $field) {
+                                $nested[$field['type']][] = $prefix . $field['name'];
+                            }
+                        }
+
+                    }
+                    unset($array);
+                }
+            }
+        }
+
+        return $nested;
+    }
+
+    /**
      * Recursive function to create array from object
-     * @param  object $object
+	 * 
+     * @param object $object Object to make to array
+	 * 
      * @return array
      */
     private function objectToArray($object)
@@ -161,12 +215,122 @@ class query extends router
     }
 
     /**
+     * Function to create array from a elasticsearch
+	 * settings notation.
+	 * 
+     * @param string $esnotation elasticsearch settings notation
+	 * @param string $explodeval Value to explode on
+	 * @param string $arrayval Value what should be noted as array
+	 * 
+     * @return array The notation in array format
+     */
+    public function toArray($esnotation, $explodeval = '.', $arrayval = '')
+    {
+        $newarray = array();
+        foreach ($esnotation as $partarray) {
+            foreach ($partarray as $key => $value) {
+                $parts = explode($explodeval, $key);
+
+                $array = $this->iterateToArray($parts, $value, $arrayval);
+                $newarray = array_merge_recursive($array, $newarray);
+            }
+        }
+
+        $endarray = $this->stupidIterateMakeNormalArray($newarray);
+
+        return $endarray;
+    }
+	
+    /**
+     * Recursive function to help toArray function
+	 * 
+     * @param array $array The notations
+	 * @param string $value Value of the notation 
+	 * @param string $arrayval If the values are array
+	 * 
+     * @return array The cleaned up array
+     */
+    private function iterateToArray($array, $value, $arrayval)
+    {
+        $i = 0;
+        $make_array = false;
+
+        foreach ($array as $string) {
+            if (!$i) {
+                if ($arrayval) {
+                    if (substr($string, 0, strlen($arrayval)) == $arrayval) {
+                        $make_array = true;
+                        $newstring = substr($string, strlen($arrayval));
+                        $parts = explode('_', $newstring);
+                        $nr = (int) $parts[0];
+                        unset($parts[0]);
+                        $string = implode('_', $parts);
+                    }
+                }
+
+                array_shift($array);
+                if (count($array)) {
+                    if ($make_array) {
+                        $output['array_' . $nr][$string] = $this->iterateToArray($array, $value, $arrayval);
+                    } else {
+                        $output[$string] = $this->iterateToArray($array, $value, $arrayval);
+                    }
+
+                } else {
+                    if ($make_array) {
+                        if ($string) {
+                            $output[$nr][$string] = $value;
+
+                        } else {
+                            $output[$nr] = $value;
+                        }
+                    } else {
+                        $output[$string] = $value;
+                    }
+                }
+            }
+            $i++;
+        }
+
+        return $output;
+    }
+
+    /**
+     * Recursive function to help toArray function to reverse
+	 * the array
+	 * 
+     * @param array $newarray The cleaned up array
+	 * 
+     * @return array The reversed array
+     */
+    private function stupidIterateMakeNormalArray($newarray)
+    {
+        if (is_array($newarray)) {
+            $newarray = array_reverse($newarray);
+            $endarray = array();
+
+            foreach ($newarray as $key => $value) {
+                if (substr($key, 0, 6) == 'array_') {
+                    $key = (int) substr($key, 6);
+                }
+                $endarray[$key] = $this->stupidIterateMakeNormalArray($value);
+            }
+        } else {
+            $endarray = $newarray;
+        }
+
+        return $endarray;
+    }
+
+    /**
      * Trims the json string from whitespaces, tabs and new lines
-     * @param  string $json JSON string
+	 * 
+     * @param string $json JSON string
+	 * 
      * @return string Trimmed JSON string
      */
     private function trimData($json)
     {
         return str_replace(array("\t","\n", "\r\n", "\r"), "", $json);
-    }
+    }	
 }

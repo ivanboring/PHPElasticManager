@@ -1,12 +1,30 @@
 <?php
 
-class viewport
+/**
+ * Viewport takes care of all outputing and templating
+ *
+ * @author Marcus Johansson <me @ marcusmailbox.com>
+ * @version 0.10-beta
+ */
+class Viewport
 {
-    public static $output = '';
-    public function __construct()
-    {
-    }
+	/**
+     * The output
+     *
+     * @var output
+     */	
+    private $output = '';
 
+    /**
+     * Render a template
+	 * 
+     * @param string $view_name The template to use
+     * @param array $vars Variables to use in the template
+     * @param bool $return Should the rendered template be outputted or returned
+	 * @param string $calling_class Controller used for the template
+	 * 
+     * @return string If $return is equal to true it will return the rendered template
+     */
     public function render($view_name, $vars = array(), $return = true, $calling_class = '')
     {
         ob_start();
@@ -20,7 +38,7 @@ class viewport
         if ($return) {
             $output = ob_get_contents();
         } else {
-            self::$output .= ob_get_contents();
+            $this->output .= ob_get_contents();
         }
 
         ob_end_clean();
@@ -28,15 +46,24 @@ class viewport
         if ($return) { return $output; }
     }
 
+    /**
+     * Writes out the output variable
+     */
     public function createPage()
     {
-        echo self::$output;
+        echo $this->output;
     }
 
+    /**
+     * Verifies that the template exists
+	 * 
+	 * @param string $view_name The name of the template
+     */
     public function verifyTemplate($view_name)
     {
         if (!file_exists('view/' . $view_name . '.tpl.php')) {
-
+            echo "No such controller";
+            exit;
         }
     }
 

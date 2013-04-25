@@ -11,7 +11,7 @@ class controllerLeftblock extends router
         $args = array('indexes' => array());
 
         // Get cluster state
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         foreach ($state['routing_table']['indices'] as $indexname => $data) {
             $index[$indexname]['shards'] = $data['shards'];

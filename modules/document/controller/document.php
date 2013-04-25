@@ -23,7 +23,7 @@ class controllerDocument extends router
     {
         if (isset($_SESSION['delete_' . $args[2]])) {
             unset($_SESSION['delete_' . $args[2]]);
-            parent::$queryLoader->callWithCheck($args[0] . '/' . $args[1] . '/' . $args[2], 'DELETE', '', 'document/search_documents/' . $args[0]);
+            parent::$query_loader->callWithCheck($args[0] . '/' . $args[1] . '/' . $args[2], 'DELETE', '', 'document/search_documents/' . $args[0]);
         }
         trigger_error('Not correctly done', E_USER_ERROR);
     }
@@ -32,7 +32,7 @@ class controllerDocument extends router
     {
         $link = implode('/', $args);
 
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         if (!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]])) {
             trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
@@ -45,7 +45,7 @@ class controllerDocument extends router
 
         $args['mappings'] = $state['metadata']['indices'][$args[0]]['mappings'][$args[1]];
 
-        $result = parent::$queryLoader->call($args[0] . '/' . $args[1] . '/_search', 'POST', '{"fields":' . json_encode($fields) . ',"query":{"ids":{"values":["' . $args[2] . '"]}},"from": "0","size": "1"}');
+        $result = parent::$query_loader->call($args[0] . '/' . $args[1] . '/_search', 'POST', '{"fields":' . json_encode($fields) . ',"query":{"ids":{"values":["' . $args[2] . '"]}},"from": "0","size": "1"}');
 
         $args['data'] = $result['hits']['hits'][0];
 
@@ -65,7 +65,7 @@ class controllerDocument extends router
 
     public function page_create_document($args)
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         if (!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]])) {
             trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
@@ -89,7 +89,7 @@ class controllerDocument extends router
 
     public function page_form_nested($args)
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         if (!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]])) {
             trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
@@ -200,7 +200,7 @@ class controllerDocument extends router
         $postdata = $this->realArrays($results);
 
         $redirect = $_SESSION['create_another'] ? 'document/create_document/' . $args[0] . '/' . $args[1] : 'document/search_documents/' . $args[0];
-        parent::$queryLoader->callWithCheck($url, 'POST', json_encode($postdata), $redirect);
+        parent::$query_loader->callWithCheck($url, 'POST', json_encode($postdata), $redirect);
 
         $this->redirect('document/search_documents/' . $args[0]);
     }
@@ -227,7 +227,7 @@ class controllerDocument extends router
     public function page_search_documents($args)
     {
         //refresh
-        parent::$queryLoader->call('_refresh', 'POST');
+        parent::$query_loader->call('_refresh', 'POST');
 
         $operator = $this->getString('operator', 'AND');
         $query = $this->getString('search', '');
@@ -239,14 +239,14 @@ class controllerDocument extends router
         $args['type'] = $type;
         $args['mapping_types'] = array('' => 'All');
 
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         $mapping = $state['metadata']['indices'][$args[0]]['mappings'];
         foreach ($mapping as $key => $value) {
             $args['mapping_types'][$key] = $key;
 
             $types[] = $key;
-            $mapfields[$key] = $this->getValueFields($value);
+            $mapfields[$key] = parent::$query_loader->getValueFields($value);
         }
 
         foreach ($mapfields as $key => $value) {
@@ -279,7 +279,7 @@ class controllerDocument extends router
 
         $url = $args[0] . $typestring . '/_search';
 
-        $result = parent::$queryLoader->call($url, 'GET', json_encode($data));
+        $result = parent::$query_loader->call($url, 'GET', json_encode($data));
 
         $i = 0;
         $newresults = array();
@@ -329,7 +329,7 @@ class controllerDocument extends router
                 }
             }
             $arguments['data'] .= '</tr><tr id="row_' . $t . '_document" class="fulldocument"><td colspan=' . $colspan .'><pre>';
-            $arguments['data'] .= parent::$queryLoader->prettyJson(json_encode($result['_document'])) . '</pre></td></tr>';
+            $arguments['data'] .= parent::$query_loader->prettyJson(json_encode($result['_document'])) . '</pre></td></tr>';
             $t++;
         }
 

@@ -8,27 +8,27 @@ class controllerIndex extends router
 
     public function page_refresh($args)
     {
-        parent::$queryLoader->callWithCheck($args[0] . '/_refresh', 'POST', null, 'index/edit/' . $args[0]);
+        parent::$query_loader->callWithCheck($args[0] . '/_refresh', 'POST', null, 'index/edit/' . $args[0]);
     }
 
     public function page_flush($args)
     {
-        parent::$queryLoader->callWithCheck($args[0] . '/_flush', 'POST', null, 'index/edit/' . $args[0]);
+        parent::$query_loader->callWithCheck($args[0] . '/_flush', 'POST', null, 'index/edit/' . $args[0]);
     }
 
     public function page_gateway_snapshot($args)
     {
-        parent::$queryLoader->callWithCheck($args[0] . '/_gateway/snapshot', 'POST', null, 'index/edit/' . $args[0]);
+        parent::$query_loader->callWithCheck($args[0] . '/_gateway/snapshot', 'POST', null, 'index/edit/' . $args[0]);
     }
 
     public function page_close($args)
     {
-        parent::$queryLoader->callWithCheck($args[0] . '/_close', 'POST', null, 'index/edit/' . $args[0]);
+        parent::$query_loader->callWithCheck($args[0] . '/_close', 'POST', null, 'index/edit/' . $args[0]);
     }
 
     public function page_open($args)
     {
-        parent::$queryLoader->callWithCheck($args[0] . '/_open', 'POST', null, 'index/edit/' . $args[0]);
+        parent::$query_loader->callWithCheck($args[0] . '/_open', 'POST', null, 'index/edit/' . $args[0]);
     }
 
     public function page_export($args)
@@ -41,12 +41,12 @@ class controllerIndex extends router
 
     public function page_export_emq($args)
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         $settings = $state['metadata']['indices'][$args[0]]['settings'];
         $mappings = $state['metadata']['indices'][$args[0]]['mappings'];
 
-        $array = $this->toArray(array($settings));
+        $array = parent::$query_loader->toArray(array($settings));
         unset($array['index']['version']);
 
         $json['settings'] = $array['index'];
@@ -65,12 +65,12 @@ class controllerIndex extends router
 
     public function page_export_bash($args)
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         $settings = $state['metadata']['indices'][$args[0]]['settings'];
         $mappings = $state['metadata']['indices'][$args[0]]['mappings'];
 
-        $array = $this->toArray(array($settings));
+        $array = parent::$query_loader->toArray(array($settings));
         unset($array['index']['version']);
 
         $json['settings'] = $array['index'];
@@ -94,7 +94,7 @@ class controllerIndex extends router
 
     public function page_create($args)
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         $form = new form($this->form_create_index($args));
 
@@ -119,7 +119,7 @@ class controllerIndex extends router
         if($results['shards']) $data['settings']['number_of_shards'] = $results['shards'];
         if($results['replicas']) $data['settings']['number_of_replicas'] = $results['replicas'];
 
-        parent::$queryLoader->callWithCheck($results['name'], 'PUT', json_encode($data), 'index/edit/' . $results['name']);
+        parent::$query_loader->callWithCheck($results['name'], 'PUT', json_encode($data), 'index/edit/' . $results['name']);
 
         $this->redirect('index/edit/' . $results['name']);
     }
@@ -129,7 +129,7 @@ class controllerIndex extends router
         $output = '';
         $vars['mapping_types'] = array();
 
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         // If the index does not exist
         if (!isset($state['metadata']['indices'][$args[0]]['settings'])) {
@@ -141,10 +141,10 @@ class controllerIndex extends router
 
         $vars['state'] = $state['metadata']['indices'][$args[0]]['state'];
 
-        $settings = parent::$queryLoader->call($args[0] . '/_settings', 'GET');
+        $settings = parent::$query_loader->call($args[0] . '/_settings', 'GET');
 
         // Get analyzers
-        $array = $this->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
+        $array = parent::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
 
         $vars['analyzers'] = array();
         if (isset($array['index']['analysis']['analyzer'])) {
@@ -178,7 +178,7 @@ class controllerIndex extends router
     public function page_create_document_type($args)
     {
         // Get all the document types for possible parents
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         $mapping = $state['metadata']['indices'][$args[0]]['mappings'];
 
@@ -240,7 +240,7 @@ class controllerIndex extends router
 
         $url = $args[0] .'/' . $results['name'] . '/_mapping';
 
-        parent::$queryLoader->callWithCheck($url, 'PUT', json_encode($data), 'index/edit/' . $args[0]);
+        parent::$query_loader->callWithCheck($url, 'PUT', json_encode($data), 'index/edit/' . $args[0]);
 
         $this->redirect('index/edit/' . $args[0]);
     }
@@ -259,7 +259,7 @@ class controllerIndex extends router
     {
         if (isset($_SESSION['delete_' . $args[0]])) {
             unset($_SESSION['delete_' . $args[0]]);
-            parent::$queryLoader->callWithCheck($args[0], 'DELETE', '', 'start');
+            parent::$query_loader->callWithCheck($args[0], 'DELETE', '', 'start');
             $this->redirect('start');
         }
         trigger_error('Not correctly done', E_USER_ERROR);
@@ -288,7 +288,7 @@ class controllerIndex extends router
         $data['actions'][0]['add']['index'] = $args[0];
         $data['actions'][0]['add']['alias'] = $results['name'];
 
-        parent::$queryLoader->callWithCheck('_aliases', 'POST', json_encode($data), 'index/edit/' . $args[0]);
+        parent::$query_loader->callWithCheck('_aliases', 'POST', json_encode($data), 'index/edit/' . $args[0]);
     }
 
     public function page_delete_alias($args)
@@ -309,7 +309,7 @@ class controllerIndex extends router
             $data['actions'][0]['remove']['index'] = $args[0];
             $data['actions'][0]['remove']['alias'] = $args[1];
 
-            parent::$queryLoader->callWithCheck('_aliases', 'POST', json_encode($data), 'index/edit/' . $args[0]);
+            parent::$query_loader->callWithCheck('_aliases', 'POST', json_encode($data), 'index/edit/' . $args[0]);
         }
         trigger_error('Not correctly done', E_USER_ERROR);
     }

@@ -8,7 +8,7 @@ class controllerElastica extends router
 
     public function page_document($args)
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         if (!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]])) {
             trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
@@ -200,12 +200,12 @@ require_once(\'vendor/autoload.php\');' . "\n\n";
 
     private function elastica_export_function($args)
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
 
         $settings = $state['metadata']['indices'][$args[0]]['settings'];
         $mappings = $state['metadata']['indices'][$args[0]]['mappings'];
 
-        $array = $this->toArray(array($settings));
+        $array = parent::$query_loader->toArray(array($settings));
         unset($array['index']['version']);
 
         $json['settings'] = $array['index'];
@@ -254,7 +254,7 @@ require_once(\'vendor/autoload.php\');' . "\n\n";
             }
         }
 
-        $data = $this->toArray($newarray, ';', '[]');
+        $data = parent::$query_loader->toArray($newarray, ';', '[]');
 
         $data = $this->elastica_iterate_findKeys($data);
 

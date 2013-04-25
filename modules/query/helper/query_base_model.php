@@ -146,7 +146,7 @@ abstract class query_base_model extends router
 
     protected function getFields()
     {
-        $state = parent::$queryLoader->call('_cluster/state', 'GET');
+        $state = parent::$query_loader->call('_cluster/state', 'GET');
         foreach ($state['metadata']['indices'][$this->index]['mappings'] as $key => $data) {
             $types[] = $key;
             foreach ($data['properties'] as $field => $fielddata) {
