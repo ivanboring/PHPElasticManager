@@ -1,14 +1,21 @@
 <?php
 
+/**
+ * Elastica creation pages
+ *
+ * @author Marcus Johansson <me @ marcusmailbox.com>
+ * @version 0.10-beta
+ */
 class controllerElastica extends router
 {
-    public function __construct()
-    {
-    }
-
+    /**
+     * Creates an elastica document class 
+	 * 
+     * @param array $args Page arguments
+     */			
     public function page_document($args)
     {
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         if (!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]])) {
             trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
@@ -31,6 +38,70 @@ class controllerElastica extends router
         echo $output;
     }
 
+    /**
+     * Creates an elastica mapping class 
+	 * 
+     * @param array $args Page arguments
+     */			
+    public function page_export($args)
+    {
+        // Set the headers
+        header('Content-type: text/php');
+        header('Content-Disposition: attachment; filename="index_' . $args[0] . '.php"');
+
+        $output = $this->elastica_export_header();
+        $output .= $this->elastica_export_function($args);
+        $output .= $this->elastica_export_footer($args);
+        echo $output;
+    }	
+
+    /**
+     * Creates an elastica query class 
+	 * 
+     * @param array $args Page arguments
+     */	
+    public function page_create_query_file($args)
+    {
+        $newarray = array();
+        $parts = json_decode($this->getPost('data'));
+
+        foreach ($parts as $part) {
+            $arrayparts = explode('=', $part);
+
+            if (isset($arrayparts[1]) && $arrayparts[1] != '') {
+                $result = $arrayparts[1];
+                $newarray[][$arrayparts[0]] = $result;
+            }
+        }
+
+        $data = self::$query_loader->toArray($newarray, ';', '[]');
+
+        $data = $this->elastica_iterate_findKeys($data);
+
+        $keys = array();
+        $this->elastica_get_keys($data, $keys);
+
+        $keys = $this->fix_array_keys($keys);
+
+        $output = $this->elastica_build_header();
+        $output .= $this->elastica_create_classname($data);
+        $output .= $this->elastica_create_values($keys);
+        $output .= $this->elastica_create_main($data, $keys);
+        $output .= $this->elastica_create_functions($keys);
+        $output .= $this->elastica_create_usage($data, $keys);
+        $output .= $this->elastica_build_footer();
+        // Set the headers
+        header('Content-type: text/php');
+        header('Content-Disposition: attachment; filename="create_query_file.php"');
+
+        echo $output;
+    }
+
+    /**
+     * Creates a part of the elastica document class 
+	 * 
+     * @return string Part of the elastica document class
+     */	
     private function elastica_document_function($field)
     {
         return '	/**
@@ -50,6 +121,11 @@ class controllerElastica extends router
     }	' . "\n\n";
     }
 
+    /**
+     * Creates a part of the elastica document class 
+	 * 
+     * @return string Part of the elastica document class
+     */	
     private function elastica_document_footer($args)
     {
         $examplefield = count($args['fields']) ? $args['fields'][0] : 'null';
@@ -85,6 +161,11 @@ class controllerElastica extends router
 ?>';
     }
 
+    /**
+     * Creates a part of the elastica document class 
+	 * 
+     * @return string Part of the elastica document class
+     */	
     private function elastica_document_header($args)
     {
         return '<?php
@@ -174,18 +255,11 @@ class elasticaDocument' . ucfirst($args[1]) . '
     }' . "\n\n";
     }
 
-    public function page_export($args)
-    {
-        // Set the headers
-        header('Content-type: text/php');
-        header('Content-Disposition: attachment; filename="index_' . $args[0] . '.php"');
-
-        $output = $this->elastica_export_header();
-        $output .= $this->elastica_export_function($args);
-        $output .= $this->elastica_export_footer($args);
-        echo $output;
-    }
-
+    /**
+     * Creates a part of the elastica mapping class 
+	 * 
+     * @return string Part of the elastica mapping class
+     */	
     private function elastica_export_header()
     {
         return '<?php
@@ -198,14 +272,20 @@ class elasticaDocument' . ucfirst($args[1]) . '
 require_once(\'vendor/autoload.php\');' . "\n\n";
     }
 
+
+    /**
+     * Creates a part of the elastica mapping class 
+	 * 
+     * @return string Part of the elastica mapping class
+     */	
     private function elastica_export_function($args)
     {
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         $settings = $state['metadata']['indices'][$args[0]]['settings'];
         $mappings = $state['metadata']['indices'][$args[0]]['mappings'];
 
-        $array = parent::$query_loader->toArray(array($settings));
+        $array = self::$query_loader->toArray(array($settings));
         unset($array['index']['version']);
 
         $json['settings'] = $array['index'];
@@ -234,49 +314,23 @@ require_once(\'vendor/autoload.php\');' . "\n\n";
         return $output;
     }
 
+
+    /**
+     * Creates a part of the elastica mapping class 
+	 * 
+     * @return string Part of the elastica mapping class
+     */	
     private function elastica_export_footer($args)
     {
         return "\n" . '//Create the index' . "\n" . '$test = new elasticaIndex' . ucfirst($args[0]) . ";\n" . '$resultSet = $test->create();
 ?>';
     }
 
-    public function page_create_query_file($args)
-    {
-        $newarray = array();
-        $parts = json_decode($this->getPost('data'));
-
-        foreach ($parts as $part) {
-            $arrayparts = explode('=', $part);
-
-            if (isset($arrayparts[1]) && $arrayparts[1] != '') {
-                $result = $arrayparts[1];
-                $newarray[][$arrayparts[0]] = $result;
-            }
-        }
-
-        $data = parent::$query_loader->toArray($newarray, ';', '[]');
-
-        $data = $this->elastica_iterate_findKeys($data);
-
-        $keys = array();
-        $this->elastica_get_keys($data, $keys);
-
-        $keys = $this->fix_array_keys($keys);
-
-        $output = $this->elastica_build_header();
-        $output .= $this->elastica_create_classname($data);
-        $output .= $this->elastica_create_values($keys);
-        $output .= $this->elastica_create_main($data, $keys);
-        $output .= $this->elastica_create_functions($keys);
-        $output .= $this->elastica_create_usage($data, $keys);
-        $output .= $this->elastica_build_footer();
-        // Set the headers
-        header('Content-type: text/php');
-        header('Content-Disposition: attachment; filename="create_query_file.php"');
-
-        echo $output;
-    }
-
+    /**
+     * Creates a part of the elastica query class 
+	 * 
+     * @return string Part of the elastica query class
+     */	
     private function fix_array_keys($keys)
     {
         $newkeys = array();
@@ -300,6 +354,11 @@ require_once(\'vendor/autoload.php\');' . "\n\n";
         return($newkeys);
     }
 
+    /**
+     * Creates a part of the elastica query class 
+	 * 
+     * @return string Part of the elastica query class
+     */	
     private function elastica_get_keys($data, &$array = array())
     {
         foreach ($data as $key => $value) {
@@ -311,6 +370,11 @@ require_once(\'vendor/autoload.php\');' . "\n\n";
         }
     }
 
+    /**
+     * Creates a part of the elastica query class 
+	 * 
+     * @return string Part of the elastica query class
+     */	
     private function elastica_create_main($data, $keys)
     {
         $query = new query();
@@ -351,6 +415,11 @@ require_once(\'vendor/autoload.php\');' . "\n\n";
         return $output;
     }
 
+    /**
+     * Creates a part of the elastica query class 
+	 * 
+     * @return string Part of the elastica query class
+     */	
     private function elastica_create_functions($keys)
     {
         $output = '';
@@ -375,6 +444,11 @@ require_once(\'vendor/autoload.php\');' . "\n\n";
         return $output;
     }
 
+    /**
+     * Creates a part of the elastica query class 
+	 * 
+     * @return string Part of the elastica query class
+     */	
     private function elastica_create_usage($data, $keys)
     {
         $output = "}\n\n";
@@ -395,11 +469,21 @@ $test = new elasticaQuery_' . substr(md5(json_encode($data)), 10) . ";\n";
         return $output;
     }
 
+    /**
+     * Creates a part of the elastica query class 
+	 * 
+     * @return string Part of the elastica query class
+     */	
     private function elastica_create_classname($data)
     {
         return "class elasticaQuery_" . substr(md5(json_encode($data)), 10) . " \n{\n";
     }
 
+    /**
+     * Creates a part of the elastica query class 
+	 * 
+     * @return string Part of the elastica query class
+     */	
     private function elastica_create_values($keys)
     {
         $output = '';
@@ -415,6 +499,11 @@ $test = new elasticaQuery_' . substr(md5(json_encode($data)), 10) . ";\n";
         return $output;
     }
 
+    /**
+     * Creates a part of the elastica query class 
+	 * 
+     * @return string Part of the elastica query class
+     */	
     private function elastica_iterate_findKeys($array, $grandkey = '')
     {
         foreach ($array as $key => $value) {
@@ -433,6 +522,11 @@ $test = new elasticaQuery_' . substr(md5(json_encode($data)), 10) . ";\n";
         return $array;
     }
 
+    /**
+     * Creates a part of the elastica query class 
+	 * 
+     * @return string Part of the elastica query class
+     */	
     private function elastica_build_header()
     {
         return '<?php
@@ -445,6 +539,11 @@ $test = new elasticaQuery_' . substr(md5(json_encode($data)), 10) . ";\n";
 require_once(\'vendor/autoload.php\');' . "\n\n";
     }
 
+    /**
+     * Creates a part of the elastica query class 
+	 * 
+     * @return string Part of the elastica query class
+     */	
     private function elastica_build_footer()
     {
         return '$resultSet = $test->search();

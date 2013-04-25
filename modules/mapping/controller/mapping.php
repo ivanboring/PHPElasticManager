@@ -1,14 +1,23 @@
 <?php
 
+/**
+ * Mapping pages
+ *
+ * @author Marcus Johansson <me @ marcusmailbox.com>
+ * @version 0.10-beta
+ */
 class controllerMapping extends router
 {
-    public function __construct()
-    {
-    }
-
+    /**
+     * Edit a document type
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */		
     public function page_edit($args)
     {
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         $variables['properties'] = array();
         if (isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]]['properties'])) {
@@ -16,39 +25,24 @@ class controllerMapping extends router
         }
         $variables['name'] = $args[0];
         $variables['document_type'] = $args[1];
-        $variables['structure'] = $this->mapping_structure($variables['properties']);
+        $variables['structure'] = self::$query_loader->mappingStructure($variables['properties']);
         $vars['content'] = $this->renderPart('mapping', $variables);
         $vars['title'] = 'Edit document type: ' . $args[0];
 
         return $vars;
     }
-
-    private function mapping_structure($props)
-    {
-        $output = '';
-        foreach ($props as $key => $value) {
-            $output .= '<li><strong>' . $key . '</strong><ul>';
-
-            foreach ($value as $formkey => $formvalue) {
-                if ($formkey != 'properties') {
-                    $output .= '<li><strong>' . $formkey . ':</strong>' . $formvalue . '</li>';
-                }
-            }
-
-            if (isset($value['properties'])) {
-                $output .= $this->mapping_structure($value['properties']);
-            }
-
-            $output .= '</ul></li>';
-        }
-
-        return $output;
-    }
-
+	
+    /**
+     * Page to view analyzers
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_view_analyzer($args)
     {
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
-        $array = parent::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
+        $state = self::$query_loader->call('_cluster/state', 'GET');
+        $array = self::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
 
         if (isset($array['index']['analysis']['analyzer'])) {
             foreach ($array['index']['analysis']['analyzer'] as $name => $value) {
@@ -78,6 +72,13 @@ class controllerMapping extends router
         return $vars;
     }
 
+    /**
+     * Page to create analyzers
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_create_analyzer($args)
     {
         $form = new form($this->form_create_analyzer($args));
@@ -94,29 +95,41 @@ class controllerMapping extends router
         return $vars;
     }
 
+    /**
+     * Post to create analyzers
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_create_analyzer_post($args)
     {
         $form = new form($this->form_create_analyzer($args));
         $results = $form->getResults();
 
-        $mapping = $this->createMapping($results);
+        $mapping = self::$query_loader->createMapping($results);
 
         // Close the index
-        parent::$query_loader->call($results['index'] . '/_close', 'POST');
+        self::$query_loader->call($results['index'] . '/_close', 'POST');
 
         // Change the mapping
         $url = $results['index'] . '/_settings';
-        parent::$query_loader->call($url, 'PUT', json_encode($mapping));
+        self::$query_loader->call($url, 'PUT', json_encode($mapping));
 
         // Open the index
-        parent::$query_loader->call($results['index'] . '/_open', 'POST');
+        self::$query_loader->call($results['index'] . '/_open', 'POST');
         $this->redirect('index/edit/' . $results['index']);
     }
 
+    /**
+     * Page to create field
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_create_field($args)
     {
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
-        $array = parent::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
+        $state = self::$query_loader->call('_cluster/state', 'GET');
+        $array = self::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
 
         $args['analyzers'] = array();
         if (isset($array['index']['analysis']['analyzer'])) {
@@ -125,7 +138,7 @@ class controllerMapping extends router
             }
         }
 
-        $args['nested'] = $this->getNested($state['metadata']['indices'][$args[0]]['mappings'][$args[1]]);
+        $args['nested'] = self::$query_loader->getNested($state['metadata']['indices'][$args[0]]['mappings'][$args[1]]);
 
         $form = new form($this->form_create_field($args));
 
@@ -141,12 +154,17 @@ class controllerMapping extends router
         return $vars;
     }
 
+    /**
+     * Post to create field
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_create_field_post($args)
     {
         $form = new form($this->form_create_field($args));
         $results = $form->getResults();
 
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         $properties[$results['name']]['type'] = $results['type'];
         // If not include in all
@@ -255,7 +273,7 @@ class controllerMapping extends router
                 $properties[$parts[0]]['fields'] = $newproperties;
             } else {
                 $array = explode('.', $parts[0]);
-                $properties = $this->putNested($array, $properties);
+                $properties = self::$query_loader->putNested($array, $properties);
             }
 
         }
@@ -264,117 +282,16 @@ class controllerMapping extends router
 
         $url = $results['index'] .'/' . $results['document_type'] . '/_mapping';
 
-        parent::$query_loader->callWithCheck($url, 'PUT', json_encode($data), 'mapping/edit/' . $results['index'] . '/' . $results['document_type']);
+        self::$query_loader->callWithCheck($url, 'PUT', json_encode($data), 'mapping/edit/' . $results['index'] . '/' . $results['document_type']);
     }
 
-    private function putNested($array, $properties)
-    {
-        if (count($array) == 1) {
-            $output[$array[0]]['properties'] = $properties;
-        } else {
-            $part = array_shift($array);
-            $output[$part]['properties'] = $this->putNested($array, $properties);
-        }
-
-        return $output;
-    }
-
-    private function getNested($properties, &$array = array(), $level = 0)
-    {
-        $nested = array();
-
-        if(!$level) $nested[''] = '_root';
-
-        if (isset($properties['properties'])) {
-            foreach ($properties['properties'] as $name => $values) {
-                if (isset($values['properties']) || $values['type'] == 'nested' || $values['type'] == 'object' || $values['type'] == 'multi_field') {
-                    $array[] = $name;
-                    $this->getNested($values, $array, 1);
-                }
-                if (!$level) {
-                    $prefix = '';
-					if(isset($array))
-					{
-	                    foreach ($array as $key) {
-	                        $nested[$prefix . $key . '---' . $values['type']] = $prefix . $key;
-	                        $prefix .= $key . '.';
-	                    }
-					}
-                    unset($array);
-                }
-            }
-        }
-
-        return $nested;
-    }
-
-    // Function to automate filter formating
-    private function createMapping($results)
-    {
-        $outputmap = array();
-        $map = array();
-
-        $name = $results['name'];
-        unset($results['name']);
-        foreach ($results as $key => $value) {
-            $keyparts = explode('_', $key);
-            if ($keyparts[0] == 'tokenfilter' && end($keyparts) == 'check' && $value) {
-                unset($keyparts[0]);
-                end($keyparts);
-                unset($keyparts[key($keyparts)]);
-                $map[implode('_', $keyparts)] = array();
-            } elseif ($keyparts[0] == 'tokenfilter') {
-                $mapname = array();
-                $functionname = array();
-                $bounded = true;
-                unset($keyparts[0]);
-
-                foreach ($keyparts as $namingparts) {
-                    if(!$namingparts) $bounded = false;
-
-                    if ($bounded && $namingparts) {
-                        $mapname[] = $namingparts;
-                    } elseif ($namingparts) {
-                        $functionname[] = $namingparts;
-                    }
-                }
-                $temp_mapname = implode('_', $mapname);
-
-                if (isset($map[$temp_mapname])) {
-                    $temp_functioname = implode('_', $functionname);
-                    $map[$temp_mapname][$temp_functioname] = $value;
-                }
-            }
-        }
-
-        // Create all custom solutions
-
-        // Stopwords
-        if (isset($map['stop']['language']) && count($map['stop']['language'])) {
-            $map['stop']['stopwords'] = $map['stop']['language'];
-        }
-        unset($map['stop']['language']);
-
-        $outputmap['analysis']['analyzer'][$name]['type'] = 'custom';
-        $outputmap['analysis']['analyzer'][$name]['tokenizer'] = 'standard';
-        foreach ($map as $key => $value) {
-            if (count($value)) {
-                $filtername = $key . time() . 'Filter';
-                $outputmap['analysis']['analyzer'][$name]['filter'][] = $filtername;
-                $outputmap['analysis']['filter'][$filtername]['type'] = $key;
-                foreach ($value as $option => $optionvalue) {
-                    if ($optionvalue != '') {
-                        $outputmap['analysis']['filter'][$filtername][$option] = $optionvalue;
-                    }
-                }
-            } else {
-                $outputmap['analysis']['analyzer'][$name]['filter'][] = $key;
-            }
-        }
-
-        return $outputmap;
-    }
-
+    /**
+     * Form for creating an analyzer
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
     private function form_create_analyzer($args)
     {
         $args[0] = isset($args[0]) ? $args[0] : '';
@@ -1026,6 +943,13 @@ This filter handles position increments > 1 by inserting filler tokens (tokens w
         return $form;
     }
 
+    /**
+     * Form for creating a field
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
     private function form_create_field($args)
     {
 

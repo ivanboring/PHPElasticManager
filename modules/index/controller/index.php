@@ -1,36 +1,70 @@
 <?php
 
+/**
+ * Index pages
+ *
+ * @author Marcus Johansson <me @ marcusmailbox.com>
+ * @version 0.10-beta
+ */
 class controllerIndex extends router
 {
-    public function __construct()
-    {
-    }
-
+    /**
+     * Refereshes an index
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_refresh($args)
     {
-        parent::$query_loader->callWithCheck($args[0] . '/_refresh', 'POST', null, 'index/edit/' . $args[0]);
+        self::$query_loader->callWithCheck($args[0] . '/_refresh', 'POST', null, 'index/edit/' . $args[0]);
     }
 
+    /**
+     * Flushes an index
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_flush($args)
     {
-        parent::$query_loader->callWithCheck($args[0] . '/_flush', 'POST', null, 'index/edit/' . $args[0]);
+        self::$query_loader->callWithCheck($args[0] . '/_flush', 'POST', null, 'index/edit/' . $args[0]);
     }
 
+    /**
+     * Gateway snapshots an index
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_gateway_snapshot($args)
     {
-        parent::$query_loader->callWithCheck($args[0] . '/_gateway/snapshot', 'POST', null, 'index/edit/' . $args[0]);
+        self::$query_loader->callWithCheck($args[0] . '/_gateway/snapshot', 'POST', null, 'index/edit/' . $args[0]);
     }
 
+    /**
+     * Closes an index
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_close($args)
     {
-        parent::$query_loader->callWithCheck($args[0] . '/_close', 'POST', null, 'index/edit/' . $args[0]);
+        self::$query_loader->callWithCheck($args[0] . '/_close', 'POST', null, 'index/edit/' . $args[0]);
     }
 
+    /**
+     * Opens an index
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_open($args)
     {
-        parent::$query_loader->callWithCheck($args[0] . '/_open', 'POST', null, 'index/edit/' . $args[0]);
+        self::$query_loader->callWithCheck($args[0] . '/_open', 'POST', null, 'index/edit/' . $args[0]);
     }
 
+    /**
+     * Export a mapping structure
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_export($args)
     {
         $vars['content'] = $this->renderPart('index_export', $args);
@@ -39,14 +73,19 @@ class controllerIndex extends router
         return $vars;
     }
 
+    /**
+     * Export a mapping structure in emq format
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_export_emq($args)
     {
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         $settings = $state['metadata']['indices'][$args[0]]['settings'];
         $mappings = $state['metadata']['indices'][$args[0]]['mappings'];
 
-        $array = parent::$query_loader->toArray(array($settings));
+        $array = self::$query_loader->toArray(array($settings));
         unset($array['index']['version']);
 
         $json['settings'] = $array['index'];
@@ -63,14 +102,19 @@ class controllerIndex extends router
         echo json_encode($json);
     }
 
+    /**
+     * Export a mapping structure in shell format
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_export_bash($args)
     {
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         $settings = $state['metadata']['indices'][$args[0]]['settings'];
         $mappings = $state['metadata']['indices'][$args[0]]['mappings'];
 
-        $array = parent::$query_loader->toArray(array($settings));
+        $array = self::$query_loader->toArray(array($settings));
         unset($array['index']['version']);
 
         $json['settings'] = $array['index'];
@@ -84,17 +128,16 @@ class controllerIndex extends router
         echo "curl -XPOST '" . parent::$config['servers']['host'] . ":" . parent::$config['servers']['port'] . "/" . $args[0] . "' -d '" . json_encode($json) . "'";
     }
 
-    public function page_index($args)
-    {
-        $vars['content'] = '';
-        $vars['title'] = '?';
-
-        return $vars;
-    }
-
+    /**
+     * Create an index page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_create($args)
     {
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         $form = new form($this->form_create_index($args));
 
@@ -107,9 +150,13 @@ class controllerIndex extends router
         $vars['title'] = 'Create index';
 
         return $vars;
-
     }
 
+    /**
+     * Create an index page post
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_create_index_post($args)
     {
         $form = new form($this->form_create_index($args));
@@ -119,17 +166,24 @@ class controllerIndex extends router
         if($results['shards']) $data['settings']['number_of_shards'] = $results['shards'];
         if($results['replicas']) $data['settings']['number_of_replicas'] = $results['replicas'];
 
-        parent::$query_loader->callWithCheck($results['name'], 'PUT', json_encode($data), 'index/edit/' . $results['name']);
+        self::$query_loader->callWithCheck($results['name'], 'PUT', json_encode($data), 'index/edit/' . $results['name']);
 
         $this->redirect('index/edit/' . $results['name']);
     }
 
+    /**
+     * Edit an index page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_edit($args)
     {
         $output = '';
         $vars['mapping_types'] = array();
 
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         // If the index does not exist
         if (!isset($state['metadata']['indices'][$args[0]]['settings'])) {
@@ -141,10 +195,10 @@ class controllerIndex extends router
 
         $vars['state'] = $state['metadata']['indices'][$args[0]]['state'];
 
-        $settings = parent::$query_loader->call($args[0] . '/_settings', 'GET');
+        $settings = self::$query_loader->call($args[0] . '/_settings', 'GET');
 
         // Get analyzers
-        $array = parent::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
+        $array = self::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
 
         $vars['analyzers'] = array();
         if (isset($array['index']['analysis']['analyzer'])) {
@@ -175,10 +229,17 @@ class controllerIndex extends router
         return $vars;
     }
 
+    /**
+     * Create document type page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_create_document_type($args)
     {
         // Get all the document types for possible parents
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         $mapping = $state['metadata']['indices'][$args[0]]['mappings'];
 
@@ -203,6 +264,11 @@ class controllerIndex extends router
         return $vars;
     }
 
+    /**
+     * Create document type post page
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_create_document_type_post($args)
     {
         $form = new form($this->form_create_document_type($args));
@@ -240,11 +306,18 @@ class controllerIndex extends router
 
         $url = $args[0] .'/' . $results['name'] . '/_mapping';
 
-        parent::$query_loader->callWithCheck($url, 'PUT', json_encode($data), 'index/edit/' . $args[0]);
+        self::$query_loader->callWithCheck($url, 'PUT', json_encode($data), 'index/edit/' . $args[0]);
 
         $this->redirect('index/edit/' . $args[0]);
     }
 
+    /**
+     * Delete index page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_delete($args)
     {
         $_SESSION['delete_' . $args[0]] = true;
@@ -255,16 +328,28 @@ class controllerIndex extends router
         return $vars;
     }
 
+    /**
+     * Delete index page confirm
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_delete_confirm($args)
     {
         if (isset($_SESSION['delete_' . $args[0]])) {
             unset($_SESSION['delete_' . $args[0]]);
-            parent::$query_loader->callWithCheck($args[0], 'DELETE', '', 'start');
+            self::$query_loader->callWithCheck($args[0], 'DELETE', '', 'start');
             $this->redirect('start');
         }
         trigger_error('Not correctly done', E_USER_ERROR);
     }
 
+    /**
+     * Create alias page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_create_alias($args)
     {
         $form = new form($this->form_create_alias($args));
@@ -280,6 +365,11 @@ class controllerIndex extends router
         return $vars;
     }
 
+    /**
+     * Create alias post page
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_create_alias_post($args)
     {
         $form = new form($this->form_create_alias($args));
@@ -288,9 +378,16 @@ class controllerIndex extends router
         $data['actions'][0]['add']['index'] = $args[0];
         $data['actions'][0]['add']['alias'] = $results['name'];
 
-        parent::$query_loader->callWithCheck('_aliases', 'POST', json_encode($data), 'index/edit/' . $args[0]);
+        self::$query_loader->callWithCheck('_aliases', 'POST', json_encode($data), 'index/edit/' . $args[0]);
     }
 
+    /**
+     * Delete alias page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_delete_alias($args)
     {
         $_SESSION['delete_alias_' . $args[0]] = true;
@@ -302,6 +399,11 @@ class controllerIndex extends router
         return $vars;
     }
 
+    /**
+     * Delete alias confirm page
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_delete_alias_confirm($args)
     {
         if (isset($_SESSION['delete_alias_' . $args[0]])) {
@@ -309,24 +411,32 @@ class controllerIndex extends router
             $data['actions'][0]['remove']['index'] = $args[0];
             $data['actions'][0]['remove']['alias'] = $args[1];
 
-            parent::$query_loader->callWithCheck('_aliases', 'POST', json_encode($data), 'index/edit/' . $args[0]);
+            self::$query_loader->callWithCheck('_aliases', 'POST', json_encode($data), 'index/edit/' . $args[0]);
         }
         trigger_error('Not correctly done', E_USER_ERROR);
     }
 
-    private function compute_nest_fields($fields = array())
+    /**
+     * Adds a menu item
+	 * 
+     * @return array Menu item array
+     */	
+    protected function menu_items()
     {
-        $output = '';
-        foreach ($fields as $name => $data) {
-            $output .= '--' . $name . ' (' . $data['type'] . ')<br>';
-            if (isset($data['properties'])) {
-                $output .= $this->compute_nest_fields($data['properties']);
-            }
-        }
-
-        return $output;
+        return array(
+            'path' => 'index/create',
+            'title' => 'Create index',
+            'weight' => 1
+        );
     }
-
+	
+    /**
+     * Form for creating an index
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
     private function form_create_index($args)
     {
         $form['_init'] = array(
@@ -368,6 +478,13 @@ class controllerIndex extends router
         return $form;
     }
 
+    /**
+     * Form for creating an alias
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
     private function form_create_alias($args)
     {
 
@@ -399,6 +516,13 @@ class controllerIndex extends router
         return $form;
     }
 
+    /**
+     * Form for creating a document type
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
     private function form_create_document_type($args)
     {
         $args['name'] = isset($args['name']) ? $args['name'] : '';
@@ -641,14 +765,4 @@ class controllerIndex extends router
 
         return $form;
     }
-
-    protected function menu_items()
-    {
-        return array(
-            'path' => 'index/create',
-            'title' => 'Create index',
-            'weight' => 1
-        );
-    }
-
 }

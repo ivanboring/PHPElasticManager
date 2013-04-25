@@ -197,23 +197,24 @@ class Query extends router
     }
 
     /**
-     * Recursive function to create array from object
+     * Recursive function to help nest mapping
 	 * 
-     * @param object $object Object to make to array
+     * @param array $properties The mapping properties
+	 * @param array $array An array passed/returned by reference to keep the key/value mapping
 	 * 
-     * @return array
+     * @return array The cleaned property
      */
-    private function objectToArray($object)
+    public function nestMapping($properties, $array)
     {
-        $array = is_object($object) ? get_object_vars($object) : $object;
-        foreach ($array as $key => $value) {
-            $value = (is_array($value) || is_object($value)) ? $this->objectToArray($value) : $value;
-            $array[$key] = $value;
+        if (count($array) == 1) {
+            return $properties['properties'][$array[0]];
+        } else {
+            $key = array_shift($array);
+
+            return $this->nestMapping($properties['properties'][$key], $array);
         }
-
-        return $array;
     }
-
+	
     /**
      * Function to create array from a elasticsearch
 	 * settings notation.
@@ -239,6 +240,238 @@ class Query extends router
         $endarray = $this->stupidIterateMakeNormalArray($newarray);
 
         return $endarray;
+    }
+	
+    /**
+     * Recursive function to create real array from assoc array
+	 * 
+     * @param array $results Results from elasticsearch
+	 * 
+     * @return array Assoc array
+     */
+    public function nonAssocArrays($results)
+    {
+        $i = 0;
+        if (is_array($results)) {
+            foreach ($results as $key => $value) {
+                if (is_integer($key)) {
+                    $output[$i] = $this->realArrays($value);
+                    $i++;
+                } else {
+                    $output[$key] = $this->realArrays($value);
+                }
+            }
+        } else {
+            $output = $results;
+        }
+
+        return $output;
+    }
+
+    /**
+     * Output array result as string result
+	 * 
+	 * @param array $value Values from elasticsearch
+     * @param array $source Results from elasticsearch
+	 * 
+     * @return string|array In the end returns a comma separated string
+     */
+    public function findResult($value, $source)
+    {
+        if (count($value) == 1) {
+            if (isset($source[$value[0]])) {
+                return $source[$value[0]];
+            } else {
+                $output = array();
+                foreach ($source as $key => $val) {
+                    $output[] = $val[$value[0]];
+                }
+
+                return implode(', ', $output);
+            }
+        } else {
+            $key = array_shift($value);
+
+            return $this->findResult($value, $source[$key]);
+        }
+    }	
+
+    /**
+     * Outputs mapping structure
+	 * 
+	 * @param array $props Properties
+	 * 
+     * @return string Mapping structure
+     */
+    public function mappingStructure($props)
+    {
+        $output = '';
+        foreach ($props as $key => $value) {
+            $output .= '<li><strong>' . $key . '</strong><ul>';
+
+            foreach ($value as $formkey => $formvalue) {
+                if ($formkey != 'properties') {
+                    $output .= '<li><strong>' . $formkey . ':</strong>' . $formvalue . '</li>';
+                }
+            }
+
+            if (isset($value['properties'])) {
+                $output .= $this->mappingStructure($value['properties']);
+            }
+
+            $output .= '</ul></li>';
+        }
+
+        return $output;
+    }
+
+    /**
+     * Recursive function to put nested objects
+	 * 
+	 * @param array $array An array passed/returned by reference to keep the key/value mapping
+	 * @param array $properties elasticsearch results
+	 *  
+     * @return array Nested structure
+     */
+    public function putNested($array, $properties)
+    {
+        if (count($array) == 1) {
+            $output[$array[0]]['properties'] = $properties;
+        } else {
+            $part = array_shift($array);
+            $output[$part]['properties'] = $this->putNested($array, $properties);
+        }
+
+        return $output;
+    }
+
+    /**
+     * Recursive function to get nested objects
+	 * 
+	 * @param array $properties elasticsearch results
+	 * @param array $array An array passed/returned by reference to keep the key/value mapping
+	 * @param integer $level level of iteration
+	 *  
+     * @return array Nested structure
+     */
+    public function getNested($properties, &$array = array(), $level = 0)
+    {
+        $nested = array();
+
+        if(!$level) $nested[''] = '_root';
+
+        if (isset($properties['properties'])) {
+            foreach ($properties['properties'] as $name => $values) {
+                if (isset($values['properties']) || $values['type'] == 'nested' || $values['type'] == 'object' || $values['type'] == 'multi_field') {
+                    $array[] = $name;
+                    $this->getNested($values, $array, 1);
+                }
+                if (!$level) {
+                    $prefix = '';
+					if(isset($array))
+					{
+	                    foreach ($array as $key) {
+	                        $nested[$prefix . $key . '---' . $values['type']] = $prefix . $key;
+	                        $prefix .= $key . '.';
+	                    }
+					}
+                    unset($array);
+                }
+            }
+        }
+
+        return $nested;
+    }
+
+    /**
+     * Function to automate filter formating
+	 * 
+	 * @param array $results elasticsearch results
+	 *  
+     * @return array Mapping structure
+     */
+    public function createMapping($results)
+    {
+        $outputmap = array();
+        $map = array();
+
+        $name = $results['name'];
+        unset($results['name']);
+        foreach ($results as $key => $value) {
+            $keyparts = explode('_', $key);
+            if ($keyparts[0] == 'tokenfilter' && end($keyparts) == 'check' && $value) {
+                unset($keyparts[0]);
+                end($keyparts);
+                unset($keyparts[key($keyparts)]);
+                $map[implode('_', $keyparts)] = array();
+            } elseif ($keyparts[0] == 'tokenfilter') {
+                $mapname = array();
+                $functionname = array();
+                $bounded = true;
+                unset($keyparts[0]);
+
+                foreach ($keyparts as $namingparts) {
+                    if(!$namingparts) $bounded = false;
+
+                    if ($bounded && $namingparts) {
+                        $mapname[] = $namingparts;
+                    } elseif ($namingparts) {
+                        $functionname[] = $namingparts;
+                    }
+                }
+                $temp_mapname = implode('_', $mapname);
+
+                if (isset($map[$temp_mapname])) {
+                    $temp_functioname = implode('_', $functionname);
+                    $map[$temp_mapname][$temp_functioname] = $value;
+                }
+            }
+        }
+
+        // Create all custom solutions
+
+        // Stopwords
+        if (isset($map['stop']['language']) && count($map['stop']['language'])) {
+            $map['stop']['stopwords'] = $map['stop']['language'];
+        }
+        unset($map['stop']['language']);
+
+        $outputmap['analysis']['analyzer'][$name]['type'] = 'custom';
+        $outputmap['analysis']['analyzer'][$name]['tokenizer'] = 'standard';
+        foreach ($map as $key => $value) {
+            if (count($value)) {
+                $filtername = $key . time() . 'Filter';
+                $outputmap['analysis']['analyzer'][$name]['filter'][] = $filtername;
+                $outputmap['analysis']['filter'][$filtername]['type'] = $key;
+                foreach ($value as $option => $optionvalue) {
+                    if ($optionvalue != '') {
+                        $outputmap['analysis']['filter'][$filtername][$option] = $optionvalue;
+                    }
+                }
+            } else {
+                $outputmap['analysis']['analyzer'][$name]['filter'][] = $key;
+            }
+        }
+
+        return $outputmap;
+    }
+		
+    /**
+     * Recursive function to create array from object
+	 * 
+     * @param object $object Object to make to array
+	 * 
+     * @return array
+     */
+    private function objectToArray($object)
+    {
+        $array = is_object($object) ? get_object_vars($object) : $object;
+        foreach ($array as $key => $value) {
+            $value = (is_array($value) || is_object($value)) ? $this->objectToArray($value) : $value;
+            $array[$key] = $value;
+        }
+
+        return $array;
     }
 	
     /**
@@ -294,7 +527,7 @@ class Query extends router
 
         return $output;
     }
-
+	
     /**
      * Recursive function to help toArray function to reverse
 	 * the array
@@ -321,7 +554,7 @@ class Query extends router
 
         return $endarray;
     }
-
+	
     /**
      * Trims the json string from whitespaces, tabs and new lines
 	 * 

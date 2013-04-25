@@ -1,11 +1,20 @@
 <?php
 
+/**
+ * User pages
+ *
+ * @author Marcus Johansson <me @ marcusmailbox.com>
+ * @version 0.10-beta
+ */
 class controllerUser extends router
-{
-    public function __construct()
-    {
-    }
-		
+{	
+    /**
+     * Create the login page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_login($args)
     {
         $form = new form($this->form_user_login($args));
@@ -20,6 +29,11 @@ class controllerUser extends router
         return $vars;
     }
 
+    /**
+     * Create the login post page
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_login_post($args)
     {
         $form = new form($this->form_user_login($args));
@@ -33,12 +47,26 @@ class controllerUser extends router
 
     }
 
+    /**
+     * Create the logout page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_logout()
     {
         $_SESSION['loggedin'] = false;
         $this->redirect('user/login');
     }
-
+	
+    /**
+     * Form for logging in
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
     private function form_user_login($args)
     {
 

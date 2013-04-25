@@ -1,11 +1,20 @@
 <?php
 
+/**
+ * Document pages
+ *
+ * @author Marcus Johansson <me @ marcusmailbox.com>
+ * @version 0.10-beta
+ */
 class controllerDocument extends router
 {
-    public function __construct()
-    {
-    }
-
+    /**
+     * Deletes a document
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */		
     public function page_delete_document($args)
     {
         $_SESSION['delete_' . $args[2]] = true;
@@ -19,20 +28,34 @@ class controllerDocument extends router
         return $vars;
     }
 
+    /**
+     * Confirms deletion of a document
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */		
     public function page_delete_document_confirm($args)
     {
         if (isset($_SESSION['delete_' . $args[2]])) {
             unset($_SESSION['delete_' . $args[2]]);
-            parent::$query_loader->callWithCheck($args[0] . '/' . $args[1] . '/' . $args[2], 'DELETE', '', 'document/search_documents/' . $args[0]);
+            self::$query_loader->callWithCheck($args[0] . '/' . $args[1] . '/' . $args[2], 'DELETE', '', 'document/search_documents/' . $args[0]);
         }
         trigger_error('Not correctly done', E_USER_ERROR);
     }
 
+    /**
+     * Edit a document
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_edit_document($args)
     {
         $link = implode('/', $args);
 
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         if (!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]])) {
             trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
@@ -45,7 +68,7 @@ class controllerDocument extends router
 
         $args['mappings'] = $state['metadata']['indices'][$args[0]]['mappings'][$args[1]];
 
-        $result = parent::$query_loader->call($args[0] . '/' . $args[1] . '/_search', 'POST', '{"fields":' . json_encode($fields) . ',"query":{"ids":{"values":["' . $args[2] . '"]}},"from": "0","size": "1"}');
+        $result = self::$query_loader->call($args[0] . '/' . $args[1] . '/_search', 'POST', '{"fields":' . json_encode($fields) . ',"query":{"ids":{"values":["' . $args[2] . '"]}},"from": "0","size": "1"}');
 
         $args['data'] = $result['hits']['hits'][0];
 
@@ -63,9 +86,16 @@ class controllerDocument extends router
         return $vars;
     }
 
+    /**
+     * Create a document
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_create_document($args)
     {
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         if (!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]])) {
             trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
@@ -87,94 +117,31 @@ class controllerDocument extends router
         return $vars;
     }
 
+    /**
+     * Json document for creating a nested form
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_form_nested($args)
     {
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         if (!isset($state['metadata']['indices'][$args[0]]['mappings'][$args[1]])) {
             trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
         }
 
-        $args['mappings'] = $this->nestMapping($state['metadata']['indices'][$args[0]]['mappings'][$args[1]], explode('.', $args[2]));
+        $args['mappings'] = self::$query_loader->nestMapping($state['metadata']['indices'][$args[0]]['mappings'][$args[1]], explode('.', $args[2]));
 
         $form = new form($this->form_nested($args));
 
         echo json_encode(array('form' => $form->createFields(), 'test' => $args[2]));
     }
 
-    private function nestMapping($properties, $array)
-    {
-        if (count($array) == 1) {
-            return $properties['properties'][$array[0]];
-        } else {
-            $key = array_shift($array);
-
-            return $this->nestMapping($properties['properties'][$key], $array);
-        }
-    }
-
-    private function form_nested($args)
-    {
-        $args[0] = isset($args[0]) ? $args[0] : '';
-        $args[1] = isset($args[1]) ? $args[1] : '';
-
-        $form['_init'] = array(
-            'name' => '',
-            'action' => ''
-        );
-
-        $form['nested'] = array(
-            '_type' => 'fieldset',
-            '_class' => 'nested-fieldset',
-            '_label' => $args[2] . ' <div class="close-nested">[-]</a>'
-        );
-
-        if (isset($args['mappings']['properties'])) {
-            foreach ($args['mappings']['properties'] as $name => $data) {
-                $typename = isset($data['type']) ? $data['type'] : '';
-
-                $newname = $typename == 'nested' ? $args[2] . '.' . $name : $args[2] . '___' . $name;
-
-                $form['nested'][$newname] = array(
-                    '_label' =>  str_replace('___', '.', $name) . ' (' . $typename . ')'
-                );
-
-                $endbrack = strstr($args[2], '.') ? ']' : '';
-                $form['nested'][$newname]['_alternative_name'] = str_replace('.', '][][', preg_replace('/\./', '[', $args[2], 1)) . $endbrack . '[' . $args[3] . '][' . $name . ']';
-
-                if (isset($data['null_value'])) {
-                    $form['nested'][$newname]['_value'] = $data['null_value'];
-                }
-
-                if (isset($args['data']['fields'][$newname])) {
-                    $form['nested'][$newname]['_value'] = $args['data']['fields'][$name];
-                }
-
-                switch ($typename) {
-                    case 'string':
-                        $form['nested'][$newname]['_type'] = 'textArea';
-                        $form['nested'][$newname]['_rows'] = 2;
-                        break;
-                    case 'integer':
-                        $form['nested'][$newname]['_type'] = 'textField';
-                        break;
-                    case 'float':
-                        $form['nested'][$newname]['_type'] = 'textField';
-                        break;
-                    case 'date':
-                        $form['nested'][$newname]['_type'] = 'textField';
-                        break;
-                    default:
-                        $form['nested'][$newname]['_type'] = 'nested';
-                        break;
-                }
-
-            }
-        }
-
-        return $form;
-    }
-
+    /**
+     * Create a document post page
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_create_document_post($args)
     {
         $form = new form($this->form_create_document($args));
@@ -197,37 +164,25 @@ class controllerDocument extends router
         unset($results['create_another']);
         unset($results['_parent']);
 
-        $postdata = $this->realArrays($results);
+        $postdata = self::$query_loader->nonAssocArrays($results);
 
         $redirect = $_SESSION['create_another'] ? 'document/create_document/' . $args[0] . '/' . $args[1] : 'document/search_documents/' . $args[0];
-        parent::$query_loader->callWithCheck($url, 'POST', json_encode($postdata), $redirect);
+        self::$query_loader->callWithCheck($url, 'POST', json_encode($postdata), $redirect);
 
         $this->redirect('document/search_documents/' . $args[0]);
     }
 
-    private function realArrays($results)
-    {
-        $i = 0;
-        if (is_array($results)) {
-            foreach ($results as $key => $value) {
-                if (is_integer($key)) {
-                    $output[$i] = $this->realArrays($value);
-                    $i++;
-                } else {
-                    $output[$key] = $this->realArrays($value);
-                }
-            }
-        } else {
-            $output = $results;
-        }
-
-        return $output;
-    }
-
+    /**
+     * search document
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_search_documents($args)
     {
         //refresh
-        parent::$query_loader->call('_refresh', 'POST');
+        self::$query_loader->call('_refresh', 'POST');
 
         $operator = $this->getString('operator', 'AND');
         $query = $this->getString('search', '');
@@ -239,14 +194,14 @@ class controllerDocument extends router
         $args['type'] = $type;
         $args['mapping_types'] = array('' => 'All');
 
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         $mapping = $state['metadata']['indices'][$args[0]]['mappings'];
         foreach ($mapping as $key => $value) {
             $args['mapping_types'][$key] = $key;
 
             $types[] = $key;
-            $mapfields[$key] = parent::$query_loader->getValueFields($value);
+            $mapfields[$key] = self::$query_loader->getValueFields($value);
         }
 
         foreach ($mapfields as $key => $value) {
@@ -279,7 +234,7 @@ class controllerDocument extends router
 
         $url = $args[0] . $typestring . '/_search';
 
-        $result = parent::$query_loader->call($url, 'GET', json_encode($data));
+        $result = self::$query_loader->call($url, 'GET', json_encode($data));
 
         $i = 0;
         $newresults = array();
@@ -295,7 +250,7 @@ class controllerDocument extends router
 
             foreach ($fields as $field) {
                 $parts = explode('.', $field);
-                $result = $this->findResult($parts, $resultdata['_source']);
+                $result = self::$query_loader->findResult($parts, $resultdata['_source']);
                 if ($result) {
                     $newresults[$i][$resultdata['_type'] . '.' . $field] = l($link, substr($result, 0, 50));
                 }
@@ -329,7 +284,7 @@ class controllerDocument extends router
                 }
             }
             $arguments['data'] .= '</tr><tr id="row_' . $t . '_document" class="fulldocument"><td colspan=' . $colspan .'><pre>';
-            $arguments['data'] .= parent::$query_loader->prettyJson(json_encode($result['_document'])) . '</pre></td></tr>';
+            $arguments['data'] .= self::$query_loader->prettyJson(json_encode($result['_document'])) . '</pre></td></tr>';
             $t++;
         }
 
@@ -343,26 +298,11 @@ class controllerDocument extends router
         return $vars;
     }
 
-    private function findResult($value, $source)
-    {
-        if (count($value) == 1) {
-            if (isset($source[$value[0]])) {
-                return $source[$value[0]];
-            } else {
-                $output = array();
-                foreach ($source as $key => $val) {
-                    $output[] = $val[$value[0]];
-                }
-
-                return implode(', ', $output);
-            }
-        } else {
-            $key = array_shift($value);
-
-            return $this->findResult($value, $source[$key]);
-        }
-    }
-
+    /**
+     * search document post page
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_search_documents_post($args)
     {
         $form = new form($this->form_search_documents($args));
@@ -372,7 +312,14 @@ class controllerDocument extends router
 
         $this->redirect('document/search_documents/' . $args[0], $results);
     }
-
+	
+    /**
+     * Form for creating/editing documents
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
     private function form_create_document($args)
     {
         $args[0] = isset($args[0]) ? $args[0] : '';
@@ -438,6 +385,13 @@ class controllerDocument extends router
         return $form;
     }
 
+    /**
+     * Form for a creating fields
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
     private function create_form_field($mappings, $fields, $parent = '', $newkey = 0)
     {
         if (isset($mappings['properties'])) {
@@ -492,6 +446,13 @@ class controllerDocument extends router
         return $form;
     }
 
+    /**
+     * Form for searching documents
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
     private function form_search_documents($args)
     {
         $form['_init'] = array(
@@ -542,6 +503,75 @@ class controllerDocument extends router
             '_value' => 'Search',
             '_type' => 'submit'
         );
+
+        return $form;
+    }
+
+    /**
+     * Form for a nested object
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
+    private function form_nested($args)
+    {
+        $args[0] = isset($args[0]) ? $args[0] : '';
+        $args[1] = isset($args[1]) ? $args[1] : '';
+
+        $form['_init'] = array(
+            'name' => '',
+            'action' => ''
+        );
+
+        $form['nested'] = array(
+            '_type' => 'fieldset',
+            '_class' => 'nested-fieldset',
+            '_label' => $args[2] . ' <div class="close-nested">[-]</a>'
+        );
+
+        if (isset($args['mappings']['properties'])) {
+            foreach ($args['mappings']['properties'] as $name => $data) {
+                $typename = isset($data['type']) ? $data['type'] : '';
+
+                $newname = $typename == 'nested' ? $args[2] . '.' . $name : $args[2] . '___' . $name;
+
+                $form['nested'][$newname] = array(
+                    '_label' =>  str_replace('___', '.', $name) . ' (' . $typename . ')'
+                );
+
+                $endbrack = strstr($args[2], '.') ? ']' : '';
+                $form['nested'][$newname]['_alternative_name'] = str_replace('.', '][][', preg_replace('/\./', '[', $args[2], 1)) . $endbrack . '[' . $args[3] . '][' . $name . ']';
+
+                if (isset($data['null_value'])) {
+                    $form['nested'][$newname]['_value'] = $data['null_value'];
+                }
+
+                if (isset($args['data']['fields'][$newname])) {
+                    $form['nested'][$newname]['_value'] = $args['data']['fields'][$name];
+                }
+
+                switch ($typename) {
+                    case 'string':
+                        $form['nested'][$newname]['_type'] = 'textArea';
+                        $form['nested'][$newname]['_rows'] = 2;
+                        break;
+                    case 'integer':
+                        $form['nested'][$newname]['_type'] = 'textField';
+                        break;
+                    case 'float':
+                        $form['nested'][$newname]['_type'] = 'textField';
+                        break;
+                    case 'date':
+                        $form['nested'][$newname]['_type'] = 'textField';
+                        break;
+                    default:
+                        $form['nested'][$newname]['_type'] = 'nested';
+                        break;
+                }
+
+            }
+        }
 
         return $form;
     }

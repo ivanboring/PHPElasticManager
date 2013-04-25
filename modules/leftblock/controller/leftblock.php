@@ -1,17 +1,24 @@
 <?php
 
+/**
+ * Left block
+ *
+ * @author Marcus Johansson <me @ marcusmailbox.com>
+ * @version 0.10-beta
+ */
 class controllerLeftblock extends router
 {
-    public function __construct()
-    {
-    }
-
+    /**
+     * Creates the left block
+	 * 
+     * @return array Block arguments
+     */	
     public function block_create()
     {
         $args = array('indexes' => array());
 
         // Get cluster state
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         foreach ($state['routing_table']['indices'] as $indexname => $data) {
             $index[$indexname]['shards'] = $data['shards'];

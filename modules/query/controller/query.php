@@ -1,11 +1,18 @@
 <?php
 
+/**
+ * Query pages
+ *
+ * @author Marcus Johansson <me @ marcusmailbox.com>
+ * @version 0.10-beta
+ */
 class controllerQuery extends router
 {
-    public function __construct()
-    {
-    }
-
+    /**
+     * Loads an emq file
+	 * 
+     * @param array $args Page arguments
+     */		
     public function page_load($args)
     {
         $query = explode("\r\n\r\n", file_get_contents($_FILES["file"]["tmp_name"]));
@@ -16,6 +23,11 @@ class controllerQuery extends router
         $this->redirect('query/query');
     }
 
+    /**
+     * Saves an emq file
+	 * 
+     * @param array $args Page arguments
+     */		
     public function page_save($args)
     {
         header('Content-type: text/plain');
@@ -30,6 +42,13 @@ class controllerQuery extends router
         echo $data->query;
     }
 
+    /**
+     * Custom query page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_query($args)
     {
         $form = new form($this->form_create_query($args));
@@ -42,7 +61,7 @@ class controllerQuery extends router
 
         $arguments['response'] = '';
         if (isset($_SESSION['query_response'])) {
-            $arguments['response'] = parent::$query_loader->prettyJson(json_encode($_SESSION['query_response']));
+            $arguments['response'] = self::$query_loader->prettyJson(json_encode($_SESSION['query_response']));
         }
 
         $vars['content'] = $this->renderPart('query_query', $arguments);
@@ -53,12 +72,19 @@ class controllerQuery extends router
         return $vars;
     }
 
+    /**
+     * Custom query post page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_query_post($args)
     {
         $form = new form($this->form_create_query($args));
         $results = $form->getResults();
 
-        $_SESSION['query_response'] = parent::$query_loader->call($results['path'], $results['method'], $results['query']);
+        $_SESSION['query_response'] = self::$query_loader->call($results['path'], $results['method'], $results['query']);
         $_SESSION['query_path'] = $results['path'];
         $_SESSION['query_method'] = $results['method'];
         $_SESSION['query_query'] = $results['query'];
@@ -69,6 +95,11 @@ class controllerQuery extends router
         }
     }
 
+    /**
+     * Set query validation page
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_validation($args)
     {
         if ($args[0]) {
@@ -78,6 +109,11 @@ class controllerQuery extends router
         }
     }
 
+    /**
+     * Creates javascript needed for query builder
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_query_builder_js($args)
     {
         $notnamed = array();
@@ -170,10 +206,17 @@ class controllerQuery extends router
 }";
     }
 
+    /**
+     * Query builder page
+	 * 
+     * @param array $args Page arguments
+	 * 
+     * @return array Variables to render a page
+     */	
     public function page_query_builder($args)
     {
 
-        $state = parent::$query_loader->call('_cluster/state', 'GET');
+        $state = self::$query_loader->call('_cluster/state', 'GET');
 
         if (!isset($state['metadata']['indices'][$args[0]]['mappings'])) {
             trigger_error("No mapping exists for " . $args[1], E_USER_ERROR);
@@ -182,7 +225,7 @@ class controllerQuery extends router
         $fields = array();
         $types = array();
         $analyzers = array('' => 'default');
-        $array = parent::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
+        $array = self::$query_loader->toArray(array($state['metadata']['indices'][$args[0]]['settings']));
 
         $indexes = array();
         foreach ($state['metadata']['indices'] as $index => $value) {
@@ -197,7 +240,7 @@ class controllerQuery extends router
 
         foreach ($state['metadata']['indices'][$args[0]]['mappings'] as $key => $data) {
             $types[] = $key;
-            $fields[$key] = parent::$query_loader->getValueFields($data);
+            $fields[$key] = self::$query_loader->getValueFields($data);
         }
 
         foreach ($fields as $key => $value) {
@@ -220,6 +263,12 @@ class controllerQuery extends router
         return $vars;
     }
 
+
+    /**
+     * Search page
+	 * 
+     * @param array $args Page arguments
+     */	
     public function page_search_json($args)
     {
         $newarray = array();
@@ -233,11 +282,11 @@ class controllerQuery extends router
             }
         }
 
-        $data = parent::$query_loader->toArray($newarray, ';', '[]');
+        $data = self::$query_loader->toArray($newarray, ';', '[]');
 
         $output['jsonarray'] = $data;
         // Then do the search
-        $results = parent::$query_loader->call($args[0] . '/_search', 'POST', json_encode($data));
+        $results = self::$query_loader->call($args[0] . '/_search', 'POST', json_encode($data));
 
         // Make the id's clickable
         if (isset($results['hits']['hits'])) {
@@ -252,6 +301,11 @@ class controllerQuery extends router
         echo json_encode($output);
     }
 
+    /**
+     * Adds a menu item
+	 * 
+     * @return array Menu item array
+     */	
     public function menu_items()
     {
         return array(
@@ -260,7 +314,14 @@ class controllerQuery extends router
             'weight' => 3
         );
     }
-
+	
+    /**
+     * Form for creating a query
+	 * 
+     * @param array $args Form arguments
+	 * 
+     * @return array Form array
+     */	
     private function form_create_query($args)
     {
         $form['_init'] = array(
@@ -316,15 +377,4 @@ class controllerQuery extends router
 
         return $form;
     }
-
-    protected function menuItems()
-    {
-        return array(
-            'query/query' => array(
-                'title' => 'Custom query',
-                'weight' => 5
-            )
-        );
-    }
-
 }
