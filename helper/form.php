@@ -73,12 +73,6 @@ class form extends router
 		return $results;
 	}
 	
-	private function addNested($vars)
-	{
-		self::$output .= '<div id="' . str_replace('.', '_-_', $vars['_name']) . '" class="form-nested"><h3>';
-		self::$output .= $vars['_name'] . '</h3><div class="data"></div><span class="button">+ Add ' . $vars['_name'] . ' object</span></div>';
-	}
-	
 	private function addTextField($vars)
 	{
 		$this->validateName($vars);
@@ -180,23 +174,39 @@ class form extends router
 			{
 				// Fieldset is special case	
 				case 'fieldset':
-					self::$output .= '<fieldset id="' . $value['_name'] . '">';
+					$value['_class'] = isset($value['_class']) ? $value['_class'] : $value['_name'];
+					self::$output .= '<fieldset id="' . $value['_name'] . '" class="' . $value['_class'] . '">';
 					if(isset($value['_label'])) { self::$output .= '<h2>' . $value['_label'] . '</h2>'; }
 					unset($value['_label']);
 					unset($value['_name']);
+					unset($value['_class']);
 					unset($value['_error']);
 					// Recurse
 					$this->iterateFormFields($value);			
 					self::$output .= '</fieldset>';
+					break;
+				// Nested is a special case
+				case 'nested':
+					if(isset($value['_script'])) 
+					{
+						self::$output .= '<script>' . $value['_script'] . '</script>'; 
+					}
+					$name = $value['_name'];
+					self::$output .= '<div id="' . str_replace('.', '_-_', $name) . '" class="form-nested"><h3>';
+					self::$output .= $name . ' </h3><div class="data">';
+					unset($value['_label']);
+					unset($value['_script']);
+					unset($value['_name']);
+					unset($value['_error']);
+					$this->iterateFormFields($value);
+					self::$output .= '</div><span class="button">+ Add ' . $name . ' object</span></div>';
+					break;					
 					break;
 				case 'hidden':	
 					$this->addHidden($value);
 					break;
 				case 'textField':
 					$this->addTextField($value);
-					break;
-				case 'nested':
-					$this->addNested($value);
 					break;
 				case 'password':
 					$this->addPassword($value);
@@ -415,7 +425,6 @@ class form extends router
 		$form = self::$form;
 		$values = $_POST;
 		$error['error'] = false;
-		
 		$init = $form['_init'];
 		unset($form['_init']);
 		

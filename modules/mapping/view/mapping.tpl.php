@@ -8,14 +8,6 @@
 	</div><br>
 	<h3>Field structure:</h3>
 	<ul>
-	<?php foreach($vars['properties'] as $key => $value) { ?>
-		<li><strong><?php echo $key; ?></strong>
-		<ul>
-		<?php foreach($value as $formkey => $formvalue) { ?>
-			<li><strong><?php echo $formkey; ?>:</strong> <?php echo $formvalue; ?></li>
-		<?php } ?>
-		</ul>			
-		</li>
-	<?php } ?>
+	<?php echo $vars['structure']; ?>
 	</ul>
 </div>

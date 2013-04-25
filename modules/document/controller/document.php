@@ -123,12 +123,14 @@ class controllerDocument extends router
 		$args[1] = isset($args[1]) ? $args[1] : '';
 		
 		$form['_init'] = array(
-			'name' => 'create_document',
-			'action' => 'document/create_document_post/' . $args[0] . '/' . $args[1]
+			'name' => '',
+			'action' => ''
 		);
 
-		$form['doc'] = array(
-			'_type' => 'fieldset'
+		$form['nested'] = array(
+			'_type' => 'fieldset',
+			'_class' => 'nested-fieldset',
+			'_label' => $args[2] . ' <div class="close-nested">[-]</a>'
 		);
 				
 		if(isset($args['mappings']['properties']))
@@ -139,40 +141,40 @@ class controllerDocument extends router
 
 				$newname = $typename == 'nested' ? $args[2] . '.' . $name : $args[2] . '___' . $name;
 				
-				$form['doc'][$newname] = array(
+				$form['nested'][$newname] = array(
 					'_label' =>  str_replace('___', '.', $name) . ' (' . $typename . ')'
 				);
 				
 				$endbrack = strstr($args[2], '.') ? ']' : '';
-				$form['doc'][$newname]['_alternative_name'] = str_replace('.', '][', preg_replace('/\./', '[', $args[2], 1)) . $endbrack . '[' . $name . ']';
+				$form['nested'][$newname]['_alternative_name'] = str_replace('.', '][][', preg_replace('/\./', '[', $args[2], 1)) . $endbrack . '[' . $args[3] . '][' . $name . ']';
 				
 				if(isset($data['null_value']))
 				{
-					$form['doc'][$newname]['_value'] = $data['null_value'];
+					$form['nested'][$newname]['_value'] = $data['null_value'];
 				}
 				
 				if(isset($args['data']['fields'][$newname]))
 				{
-					$form['doc'][$newname]['_value'] = $args['data']['fields'][$name];
+					$form['nested'][$newname]['_value'] = $args['data']['fields'][$name];
 				}
 				
 				switch($typename)
 				{
 					case 'string':
-						$form['doc'][$newname]['_type'] = 'textArea';
-						$form['doc'][$newname]['_rows'] = 2;
+						$form['nested'][$newname]['_type'] = 'textArea';
+						$form['nested'][$newname]['_rows'] = 2;
 						break;
 					case 'integer':
-						$form['doc'][$newname]['_type'] = 'textField';
+						$form['nested'][$newname]['_type'] = 'textField';
 						break;
 					case 'float':
-						$form['doc'][$newname]['_type'] = 'textField';
+						$form['nested'][$newname]['_type'] = 'textField';
 						break;		
 					case 'date':
-						$form['doc'][$newname]['_type'] = 'textField';
+						$form['nested'][$newname]['_type'] = 'textField';
 						break;
 					default:
-						$form['doc'][$newname]['_type'] = 'nested';
+						$form['nested'][$newname]['_type'] = 'nested';
 						break;
 				}
 	
@@ -203,15 +205,38 @@ class controllerDocument extends router
 		unset($results['document_type']);
 		unset($results['create_another']);
 		unset($results['_parent']);
+
+		$postdata = $this->realArrays($results);
 		
-		$postdata = array();
-
-		$postdata = $results;
-
 		$redirect = $_SESSION['create_another'] ? 'document/create_document/' . $args[0] . '/' . $args[1] : 'document/search_documents/' . $args[0];
 		parent::$queryLoader->callWithCheck($url, 'POST', json_encode($postdata), $redirect);	
 				
 		$this->redirect('document/search_documents/' . $args[0]);
+	}
+
+	private function realArrays($results)
+	{
+		$i = 0;
+		if(is_array($results))
+		{
+			foreach($results as $key => $value)
+			{
+				if(is_integer($key))
+				{
+					$output[$i] = $this->realArrays($value);
+					$i++;
+				}
+				else 
+				{
+					$output[$key] = $this->realArrays($value);	
+				}
+			}
+		}
+		else 
+		{
+			$output = $results;	
+		}
+		return $output;
 	}
 	
 	public function page_search_documents($args)
@@ -354,7 +379,19 @@ class controllerDocument extends router
 	{
 		if(count($value) == 1)
 		{
-			return $source[$value[0]];
+			if(isset($source[$value[0]]))
+			{
+				return $source[$value[0]];
+			}
+			else 
+			{
+				$output = array();
+				foreach($source as $key => $val)
+				{
+					$output[] = $val[$value[0]];
+				}
+				return implode(', ', $output);	
+			}
 		}
 		else
 		{
@@ -404,47 +441,9 @@ class controllerDocument extends router
 			'_value' => isset($args['data']['_id']) ? $args['data']['_id'] : '',
 		);
 		
-		if(isset($args['mappings']['properties']))
-		{
-			foreach($args['mappings']['properties'] as $name => $data)
-			{
-				$typename = isset($data['type']) ? $data['type'] : '';
-				$form['doc'][$name] = array(
-					'_label' =>  $name . ' (' . $typename . ')'
-				);
-				
-				if(isset($data['null_value']))
-				{
-					$form['doc'][$name]['_value'] = $data['null_value'];
-				}
-				
-				if(isset($args['data']['fields'][$name]))
-				{
-					$form['doc'][$name]['_value'] = $args['data']['fields'][$name];
-				}
-				
-				switch($typename)
-				{
-					case 'string':
-						$form['doc'][$name]['_type'] = 'textArea';
-						$form['doc'][$name]['_rows'] = 2;
-						break;
-					case 'integer':
-						$form['doc'][$name]['_type'] = 'textField';
-						break;
-					case 'float':
-						$form['doc'][$name]['_type'] = 'textField';
-						break;		
-					case 'date':
-						$form['doc'][$name]['_type'] = 'textField';
-						break;
-					default:
-						$form['doc'][$name]['_type'] = 'nested';
-						break;
-				}
-	
-			}
-		}
+		$newform['doc'] = $this->create_form_field($args['mappings'], $args['data']['fields']);
+		
+		$form = array_merge_recursive($form, $newform);
 		
 		if(isset($args['mappings']['_parent']))
 		{
@@ -477,6 +476,69 @@ class controllerDocument extends router
 			'_type' => 'submit'
 		);
 		
+		return $form;
+	}
+
+	private function create_form_field($mappings, $fields, $parent = '', $newkey = 0)
+	{
+		if(isset($mappings['properties']))
+		{
+			foreach($mappings['properties'] as $name => $data)
+			{
+				$typename = isset($data['type']) ? $data['type'] : '';
+
+				$labelname = $name;
+				$realname = $name;
+				if($parent)
+				{
+					$labelname = $name . ' (' . $typename . ')';
+					$name = $parent . '[' . $newkey . '][' . $name . ']';
+				}
+
+				$form[$name]['_label'] = $labelname;
+								
+				if(isset($data['null_value']))
+				{
+					$form[$name]['_value'] = $data['null_value'];
+				}
+				
+				switch($typename)
+				{
+					case 'string':
+						$form[$name]['_type'] = 'textArea';
+						$form[$name]['_rows'] = 2;
+						break;
+					case 'nested':
+					case 'object':
+					case '':
+						$form[$name]['_type'] = 'nested';
+						break;
+					default:
+						$form[$name]['_type'] = 'textField';
+						break;
+				}
+				
+				if($typename == 'nested' || $typename == 'object' || $typename == '')
+				{
+					unset($form[$name]['_label']);
+					$form[$name]['_script'] = 'counter[\'' . $name . '\'] = ' . count($fields[$name]) . ';';
+					foreach($fields[$name] as $key => $value)
+					{
+						$form[$name][$name . '_fieldset_' . $key] = $this->create_form_field($mappings['properties'][$name], $value, $name, $key);
+						$form[$name][$name . '_fieldset_' . $key]['_type'] = 'fieldset';
+						$form[$name][$name . '_fieldset_' . $key]['_class'] = 'nested-fieldset';
+						$form[$name][$name . '_fieldset_' . $key]['_label'] = $name . ' <div class="close-nested">[-]</a>';
+					}
+				}
+				else 
+				{
+					if(isset($fields[$realname]))
+					{
+						$form[$name]['_value'] = $fields[$realname];
+					}					
+				}
+			}
+		}
 		return $form;
 	}
 

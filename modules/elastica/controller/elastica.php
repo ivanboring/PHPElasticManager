@@ -264,7 +264,7 @@ require_once(\'vendor/autoload.php\');' . "\n\n";
 		}
 		
 		$data = $this->toArray($newarray, ';', '[]');
-		
+
 		$data = $this->elastica_iterate_findKeys($data);
 		
 		$keys = array();
@@ -458,11 +458,11 @@ $test = new elasticaQuery_' . substr(md5(json_encode($data)), 10) . ";\n";
 			{
 				if(is_integer($key))
 				{
-					$array[$key] = '$' . ucfirst($grandkey) . '_array' . '|-|' . $value . '$';	
+					$array[$key] = '$' . str_replace('.', '_', ucfirst($grandkey)) . '_array' . '|-|' . $value . '$';	
 				}
 				else
 				{
-					$array[$key] = '$' . ucfirst($grandkey) . ucfirst($key) . '|-|' . $value . '$';						
+					$array[$key] = '$' . str_replace('.', '_', ucfirst($grandkey)) . ucfirst($key) . '|-|' . $value . '$';						
 				}
 			}
 			else 

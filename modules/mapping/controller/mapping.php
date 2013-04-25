@@ -17,9 +17,34 @@ class controllerMapping extends router
 		}
 		$variables['name'] = $args[0];
 		$variables['document_type'] = $args[1];
+		$variables['structure'] = $this->mapping_structure($variables['properties']);
 		$vars['content'] = $this->renderPart('mapping', $variables);
 		$vars['title'] = 'Edit document type: ' . $args[0];
 		return $vars;
+	}
+	
+	private function mapping_structure($props)
+	{
+		$output = '';
+		foreach($props as $key => $value) { 
+			$output .= '<li><strong>' . $key . '</strong><ul>';
+		
+			foreach($value as $formkey => $formvalue) 
+			{
+				if($formkey != 'properties')
+				{
+					$output .= '<li><strong>' . $formkey . ':</strong>' . $formvalue . '</li>';
+				}
+			}
+			
+			if(isset($value['properties']))
+			{
+				$output .= $this->mapping_structure($value['properties']);	
+			}
+			
+			$output .= '</ul></li>';
+		}
+		return $output;
 	}
 	
 	public function page_view_analyzer($args)

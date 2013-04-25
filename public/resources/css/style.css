@@ -513,9 +513,12 @@ table tr.fulldocument {
 }
 
 .form-nested {
-	border: 2px solid #444;
-	padding: 20px;
-	margin: 10px 0;
+	padding: 5px;
+	margin: 5px 0;
+}
+
+.nested-fieldset {
+	border-left: 4px solid #444;	
 }
 
 #create_index .submit, #create_field .submit {
@@ -542,18 +545,23 @@ table tr.fulldocument {
 	display: none;
 }
 
-#create_document fieldset fieldset
-{
-	width: 670px;
+#create_document h2 {
+	margin: 0;	
 }
 
-#create_document fieldset fieldset fieldset
-{
-	width: 570px;
+#create_document fieldset fieldset {
+	width: 690px;
 }
 
-#create_document fieldset fieldset fieldset fieldset
-{
-	width: 470px;
+#create_document fieldset fieldset fieldset {
+	width: 610px;
 }
 
+#create_document fieldset fieldset fieldset fieldset {
+	width: 630px;
+}
+
+.close-nested {
+	display: inline;
+	cursor: pointer;	
+}
