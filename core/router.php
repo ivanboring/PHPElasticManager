@@ -321,6 +321,16 @@ class router
 					$array[$name]['name'] = $name;
 					$this->getValueFields($values, $array, 1, $name);
 				}
+				elseif($values['type'] == 'multi_field')
+				{
+					foreach($values['fields'] as $mfkey => $mfvalue)
+					{
+						$array[$name]['fields'][] = array(
+							'name' => $name == $mfkey ? '' : $mfkey, 
+							'type' => $mfvalue['type']
+						);
+					}
+				}
 				else 
 				{
 					$array[$keyname]['fields'][] = array('name' => $name, 'type' => $values['type']);

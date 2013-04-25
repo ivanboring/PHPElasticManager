@@ -93,6 +93,11 @@ function field_show(type)
 		case 'binary':
 			var show = new Array();		
 			break;
+		case 'multi_field':
+			var show = new Array(
+				'.input-checkbox-include_in_all'
+			);
+			break;
 		case 'nested':
 			var show = new Array(
 				'.input-include_in_parent',

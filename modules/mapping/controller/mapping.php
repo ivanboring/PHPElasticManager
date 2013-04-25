@@ -170,7 +170,7 @@ class controllerMapping extends router
 			$properties[$results['name']]['index'] = 'no';
 		}
 		// Check if not analyzed, otherwise append a analyzer
-		elseif(!$results['not_analyzed_check'])
+		elseif(!isset($results['not_analyzed_check']))
 		{
 			$properties[$results['name']]['index'] = 'not_analyzed';
 		}
@@ -282,11 +282,22 @@ class controllerMapping extends router
 		{
 			$properties[$results['name']]['index_options'] = $results['index_options'];
 		}
-		
+
 		if($results['nest_parent'])
 		{
-			$array = explode('.', $results['nest_parent']);
-			$properties = $this->putNested($array, $properties);
+			$parts = explode('---', $results['nest_parent']);
+			
+			if(isset($parts[1]) && $parts[1] == 'multi_field')
+			{
+				$newproperties = $properties;
+				unset($properties);
+				$properties[$parts[0]]['fields'] = $newproperties; 
+			}
+			else {
+				$array = explode('.', $parts[0]);
+				$properties = $this->putNested($array, $properties);
+			}
+			
 		}
 
 		$data[$results['document_type']]['properties'] = $properties;
@@ -313,14 +324,14 @@ class controllerMapping extends router
 	private function getNested($properties, &$array = array(), $level = 0)
 	{
 		$nested = array();
-		
+
 		if(!$level) $nested[''] = '_root';
 		
 		if(isset($properties['properties']))
 		{
 			foreach($properties['properties'] as $name => $values)
 			{
-				if(isset($values['properties']) || $values['type'] == 'nested' || $values['type'] == 'object')
+				if(isset($values['properties']) || $values['type'] == 'nested' || $values['type'] == 'object' || $values['type'] == 'multi_field')
 				{
 					$array[] = $name;
 					$this->getNested($values, $array, 1);
@@ -330,7 +341,7 @@ class controllerMapping extends router
 					$prefix = '';		
 					foreach($array as $key)
 					{
-						$nested[$prefix . $key] = $prefix . $key;
+						$nested[$prefix . $key . '---' . $values['type']] = $prefix . $key;
 						$prefix .= $key . '.';
 					}
 					unset($array);
@@ -1114,6 +1125,7 @@ This filter handles position increments > 1 by inserting filler tokens (tokens w
 			'binary' => 'Binary',
 			'nested' => 'Nested',
 			'object' => 'Object',
+			'multi_field' => 'Multi Field',
 			'ip' => 'ipv4',
 			'geo_point' => 'Geo Point',
 			'geo_shape' => 'Geo Shape',

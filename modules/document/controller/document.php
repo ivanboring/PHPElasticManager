@@ -264,7 +264,7 @@ class controllerDocument extends router
 			$types[] = $key;
 			$mapfields[$key] = $this->getValueFields($value);
 		}
-
+		
 		foreach($mapfields as $key => $value)
 		{
 			foreach($value as $mapkey => $map)
