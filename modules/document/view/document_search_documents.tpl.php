@@ -1,3 +1,3 @@
 <?php echo $vars['form']; ?>
 
-<?php echo $vars['data']; ?>
+<?php echo $vars['data'];

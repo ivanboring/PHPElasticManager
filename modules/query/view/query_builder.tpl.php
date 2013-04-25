@@ -10,16 +10,16 @@ Root <div class="queryBuilder_plusMultiple" name="root">[+]</div>
 
 <h3 id="request">Request</h3>
 <div id="json_code" class="box">
-	<pre>
-		
-	</pre>
+    <pre>
+
+    </pre>
 </div>
 
 <h3>Response</h3>
 <div id="queryBuilder_results" class="box">
-	<pre>
-		
-	</pre>
+    <pre>
+
+    </pre>
 </div>
 
 <script type="text/javascript" src="?q=query/query_builder_js/<?php echo $vars[0]; ?>"></script>

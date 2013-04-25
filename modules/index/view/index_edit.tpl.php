@@ -14,14 +14,11 @@
 </div>
 
 <div class="addField">
-<?php 
-if($vars['state'] == 'close')
-{
-	echo l('index/open/' . $vars['name'], '<span class="button">Open index</span>'); 
-}
-else
-{
-	echo l('index/close/' . $vars['name'], '<span class="button">Close index</span>'); 
+<?php
+if ($vars['state'] == 'close') {
+    echo l('index/open/' . $vars['name'], '<span class="button">Open index</span>');
+} else {
+    echo l('index/close/' . $vars['name'], '<span class="button">Close index</span>');
 }
 ?>
 
@@ -34,11 +31,11 @@ else
 <h3>Aliases:</h3>
 <ul>
 <?php
-foreach($vars['aliases'] as $aliasname) {
+foreach ($vars['aliases'] as $aliasname) {
 ?>
-	<div class="alias">
-	<li><?php echo $aliasname; ?> [<?php echo l('index/delete_alias/' . $vars['name'] . '/' . $aliasname, 'delete'); ?>]</li>
-	</div>
+    <div class="alias">
+    <li><?php echo $aliasname; ?> [<?php echo l('index/delete_alias/' . $vars['name'] . '/' . $aliasname, 'delete'); ?>]</li>
+    </div>
 <?php
 }
 ?>
@@ -49,16 +46,13 @@ foreach($vars['aliases'] as $aliasname) {
 
 </div>
 
-
-
 <div class="box">
 <h3>Document types:</h3>
 <ul>
 <?php
 sort($vars['mapping_types']);
-foreach($vars['mapping_types'] as $type)
-{
-	echo '<li>' . l('mapping/edit/' . $vars['name'] . '/' . $type, $type) . '</li>';
+foreach ($vars['mapping_types'] as $type) {
+    echo '<li>' . l('mapping/edit/' . $vars['name'] . '/' . $type, $type) . '</li>';
 }
 ?>
 </ul>
@@ -71,9 +65,8 @@ foreach($vars['mapping_types'] as $type)
 <ul>
 <?php
 sort($vars['analyzers']);
-foreach($vars['analyzers'] as $analyzer)
-{
-	echo '<li>' . l('mapping/view_analyzer/' . $vars['name'] . '/' . $analyzer, $analyzer) . '</li>';
+foreach ($vars['analyzers'] as $analyzer) {
+    echo '<li>' . l('mapping/view_analyzer/' . $vars['name'] . '/' . $analyzer, $analyzer) . '</li>';
 }
 ?>
 </ul>
@@ -88,32 +81,25 @@ foreach($vars['analyzers'] as $analyzer)
 
 </div>
 
-
 <div class="box">
 <h3>Data management:</h3>
 
 <div class="addField">
 <?php
-if($vars['state'] == 'open')
-{ 
-	echo l('document/search_documents/' . $vars['name'], '<span class="button ' . $vars['state'] . '">Edit documents</span>');
-}
-else 
-{
-	echo '<span class="button close">Edit documents</span>';
+if ($vars['state'] == 'open') {
+    echo l('document/search_documents/' . $vars['name'], '<span class="button ' . $vars['state'] . '">Edit documents</span>');
+} else {
+    echo '<span class="button close">Edit documents</span>';
 }
  ?>
 </div>
 
 <div class="addField">
-<?php 
-if($vars['state'] == 'open')
-{
-	echo l('query/query_builder/' . $vars['name'], '<span class="button ' . $vars['state'] . '">Searchquery builder</span>'); 
-}
-else 
-{
-	echo '<span class="button close">Searchquery builder</span>';
+<?php
+if ($vars['state'] == 'open') {
+    echo l('query/query_builder/' . $vars['name'], '<span class="button ' . $vars['state'] . '">Searchquery builder</span>');
+} else {
+    echo '<span class="button close">Searchquery builder</span>';
 }
 ?>
 </div>
@@ -121,18 +107,14 @@ else
 <h3>Add data:</h3>
 <ul>
 <?php
-foreach($vars['mapping_types'] as $type)
-{
+foreach ($vars['mapping_types'] as $type) {
 ?>
 <li>
-<?php 
-if($vars['state'] == 'open')
-{
-	echo l('document/create_document/' . $vars['name'] . '/' . $type, $type); 
-}
-else 
-{
-	echo $type;
+<?php
+if ($vars['state'] == 'open') {
+    echo l('document/create_document/' . $vars['name'] . '/' . $type, $type);
+} else {
+    echo $type;
 }
 ?>
 </li>
@@ -140,7 +122,6 @@ else
 }
 ?>
 </ul>
-
 
 </div>
 

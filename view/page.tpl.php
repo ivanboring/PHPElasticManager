@@ -8,13 +8,11 @@
 <script type="text/javascript" src="resources/js/custom/core.js"></script>
 <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700,800' rel='stylesheet' type='text/css'>
 <?php
-	if(isset($vars['javascript']) && is_array($vars['javascript']))
-	{
-		foreach($vars['javascript'] as $script)
-		{
-			echo '<script type="text/javascript" src="resources/js/' . $script . '"></script>' . "\n";
-		}
-	}
+    if (isset($vars['javascript']) && is_array($vars['javascript'])) {
+        foreach ($vars['javascript'] as $script) {
+            echo '<script type="text/javascript" src="resources/js/' . $script . '"></script>' . "\n";
+        }
+    }
 ?>
 <meta charset="UTF-8">
 <title>PHPElasticManager: <?php echo $vars['title']; ?></title>
@@ -22,41 +20,41 @@
 
 <body>
 <div id="header" class="header">
-	<div id="main">
-		<?php echo l('', '<span><div class="logo"></div></span>'); ?>
-		<div class="check">
-			<input type="checkbox" id="validateQuery" <?php echo $vars['validate']; ?>><label for="validateQuery">Validate each query</label>
-		</div>
-	</div>
+    <div id="main">
+        <?php echo l('', '<span><div class="logo"></div></span>'); ?>
+        <div class="check">
+            <input type="checkbox" id="validateQuery" <?php echo $vars['validate']; ?>><label for="validateQuery">Validate each query</label>
+        </div>
+    </div>
 </div>
 
 <div id="menu" class="menu">
-	<div id="main">
-	<ul>
-	<?php foreach($vars['menus'] as $path => $values) { ?>
-		<li><?php echo l($values['path'], $values['title']); ?></li>
-	<?php } ?>
-	</ul>
-	
-	</div>
+    <div id="main">
+    <ul>
+    <?php foreach ($vars['menus'] as $path => $values) { ?>
+        <li><?php echo l($values['path'], $values['title']); ?></li>
+    <?php } ?>
+    </ul>
+
+    </div>
 </div>
 
 <div id="main">
-	<div id="leftmenu" class="leftMenu">
-	<?php echo $vars['leftblock']; ?>
-	</div>
-	
-	<div id="content" class="content">
-	<h2><?php echo $vars['title']; ?></h2>
-	<?php if($vars['response_message']): ?>
-		<div class="response_message">
-			<pre><?php echo $vars['response_message']; ?></pre>
-		</div>
-	<?php endif; ?>
-	<?php echo $vars['content']; ?>
-	
-	<div class="external"><a href="http://www.phpelasticmanager.org">http://www.phpelasticmanager.org - GUI elasticsearch admin tool</a></div>
-	</div>
+    <div id="leftmenu" class="leftMenu">
+    <?php echo $vars['leftblock']; ?>
+    </div>
+
+    <div id="content" class="content">
+    <h2><?php echo $vars['title']; ?></h2>
+    <?php if($vars['response_message']): ?>
+        <div class="response_message">
+            <pre><?php echo $vars['response_message']; ?></pre>
+        </div>
+    <?php endif; ?>
+    <?php echo $vars['content']; ?>
+
+    <div class="external"><a href="http://www.phpelasticmanager.org">http://www.phpelasticmanager.org - GUI elasticsearch admin tool</a></div>
+    </div>
 </div>
 
 </body>
