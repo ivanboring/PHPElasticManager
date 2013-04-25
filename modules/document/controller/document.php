@@ -234,7 +234,7 @@ class controllerDocument extends router
         if ($query) {
             $data['query']['text']['_all']['query'] = $query;
             if ($operator) {
-                $data['query']['text']['_all']['operator'] = $operator;
+              	$data['query']['text']['_all']['operator'] = $operator;
             }
         } else {
             $data['query']['match_all'] = array();
