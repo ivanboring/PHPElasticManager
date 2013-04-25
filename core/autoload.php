@@ -7,8 +7,8 @@
  */
 function ESManagerAutoLoad($class_name)
 {
-    if (file_exists('helper/' . $class_name . '.php')) {
-        require_once 'helper/'. $class_name . '.php';
+    if (file_exists('helper/' . ucfirst($class_name) . '.php')) {
+        require_once 'helper/'. ucfirst($class_name) . '.php';
     } else {
         $dirs = scandir('modules');
         foreach ($dirs as $dir) {
