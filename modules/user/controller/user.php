@@ -84,8 +84,7 @@ class controllerUser extends router
             '_label' => 'Username',
             '_validation' => array(
                 'required' => true
-            ),
-            '_description' => 'Your username.',
+            )
         );
 
         $form['login']['password'] = array(
@@ -93,8 +92,7 @@ class controllerUser extends router
             '_label' => 'Password',
             '_validation' => array(
                 'required' => true
-            ),
-            '_description' => 'Your password.',
+            )
         );
 
         $form['login']['submit'] = array(
