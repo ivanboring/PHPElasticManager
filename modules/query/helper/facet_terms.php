@@ -27,6 +27,11 @@ class facet_terms extends query_base_model
         $this->createLabel('size');
         $this->createTextInput('setval');
         $this->createCloseDiv();
+		
+        $this->createNestDiv('regexp');
+        $this->createLabel('regexp');
+        $this->createTextInput('setval', 'longtext');
+        $this->createCloseDiv();		
 
         $this->createNestDiv('order');
         $this->createLabel('order');

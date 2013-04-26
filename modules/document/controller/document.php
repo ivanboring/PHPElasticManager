@@ -131,7 +131,7 @@ class controllerDocument extends router
         }
 
         $args['mappings'] = self::$query_loader->nestMapping($state['metadata']['indices'][$args[0]]['mappings'][$args[1]], explode('.', $args[2]));
-
+		
         $form = new form($this->form_nested($args));
 
         echo json_encode(array('form' => $form->createFields(), 'test' => $args[2]));
@@ -412,7 +412,7 @@ class controllerDocument extends router
                 $labelname = $name;
                 $realname = $name;
                 if ($parent) {
-                    $labelname = $name . ' (' . $typename . ')';
+                    $labelname = $name;
                     $name = $parent . '[' . $newkey . '][' . $name . ']';
                 }
 
@@ -421,26 +421,39 @@ class controllerDocument extends router
                 if (isset($data['null_value'])) {
                     $form[$name]['_value'] = $data['null_value'];
                 }
-
+				
                 switch ($typename) {
                     case 'string':
                         $form[$name]['_type'] = 'textArea';
                         $form[$name]['_rows'] = 2;
-						$form[$name]['_label'] = $labelname . ' ("," delimiter for multiple values, eg "flight","mode")';
+						$form[$name]['_label'] = $labelname;
+						$form[$name]['_underlabel'] = '(' . $typename . ')' . ' ("," delimiter for multiple values, eg "flight","mode")';
                         break;
+					case 'boolean':
+						$form[$name]['_type'] = 'radios';
+						$form[$name]['_options'] = array(
+							1 => 'true',
+							0 => 'false'
+						);
+						break;
                     case 'nested':
+						$form[$name]['_type'] = 'nested';
+						break;
                     case 'object':
                     case '':
-                        $form[$name]['_type'] = 'nested';
+                        $form[$name]['_type'] = 'fieldset';
+						$typename = 'object';
                         break;
                     default:
                         $form[$name]['_type'] = 'textField';
-						$form[$name]['_label'] = $labelname . ' ("," delimiter for multiple values, eg "flight","mode")';
+						$form[$name]['_label'] = $labelname;
+						$form[$name]['_underlabel'] = '(' . $typename . ')' . ' ("," delimiter for multiple values, eg "flight","mode")';
                         break;
                 }
 
-                if ($typename == 'nested' || $typename == 'object' || $typename == '') {
+                if ($typename == 'nested') {
                     unset($form[$name]['_label']);
+					if(!isset($fields[$name])) $fields[$name] = array();
                     $form[$name]['_script'] = 'counter[\'' . $name . '\'] = ' . count($fields[$name]) . ';';
                     foreach ($fields[$name] as $key => $value) {
                         $form[$name][$name . '_fieldset_' . $key] = $this->create_form_field($mappings['properties'][$name], $value, $name, $key);
@@ -448,7 +461,15 @@ class controllerDocument extends router
                         $form[$name][$name . '_fieldset_' . $key]['_class'] = 'nested-fieldset';
                         $form[$name][$name . '_fieldset_' . $key]['_label'] = $name . ' <div class="close-nested">[-]</a>';
                     }
-                } else {
+				} elseif ($typename == 'object') {
+					foreach($data['properties'] as $key => $value)
+					{
+						$senddata = isset($fields[$name][0]) ? $fields[$name][0] : array();
+                    	$form[$name] = $this->create_form_field($data, $senddata, $name);
+						$form[$name]['_type'] = 'fieldset';
+						$form[$name]['_label'] = $name;
+					}
+				} else {
                     if (isset($fields[$realname])) {
                     	if (is_array($fields[$realname])) {
                     		$fields[$realname] = '"' . implode('","', $fields[$realname]) . '"';
@@ -458,7 +479,6 @@ class controllerDocument extends router
                 }
             }
         }
-
         return $form;
     }
 
@@ -569,9 +589,17 @@ class controllerDocument extends router
 
                 switch ($typename) {
                     case 'string':
+					case 'multi_field':
                         $form['nested'][$newname]['_type'] = 'textArea';
                         $form['nested'][$newname]['_rows'] = 2;
                         break;
+					case 'boolean':
+                        $form['nested'][$newname]['_type'] = 'radios';
+                        $form['nested'][$newname]['_options'] = array(
+							1 => 'true',
+							0 => 'false'
+						);
+                        break;						
                     case 'integer':
                         $form['nested'][$newname]['_type'] = 'textField';
                         break;
@@ -581,9 +609,12 @@ class controllerDocument extends router
                     case 'date':
                         $form['nested'][$newname]['_type'] = 'textField';
                         break;
-                    default:
+					case 'nested':
                         $form['nested'][$newname]['_type'] = 'nested';
                         break;
+                    default:
+                        $form['nested'][$newname]['_type'] = 'textField';
+                        break;						
                 }
 
             }

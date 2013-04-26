@@ -20,6 +20,11 @@ label {
 	display: block;
 }
 
+label span {
+	font-weight: normal;
+	font-size: 10px;
+}
+
 h3{
 	margin: 0;
 }
@@ -537,7 +542,8 @@ table tr.fulldocument {
 }
 
 #create_document h2 {
-	margin: 0;	
+	margin: 0;
+	font-size: 12px;
 }
 
 #create_document fieldset fieldset {

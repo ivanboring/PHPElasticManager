@@ -150,7 +150,18 @@ class form extends router
                     $this->iterateFormFields($value);
                     $this->output .= '</div><span class="button">+ Add ' . $name . ' object</span></div>';
                     break;
-                    break;
+				case 'object':
+                    $value['_class'] = isset($value['_class']) ? $value['_class'] : $value['_name'];
+                    $this->output .= '<fieldset id="' . $value['_name'] . '" class="' . $value['_class'] . '">';
+                    if (isset($value['_label'])) { $this->output .= '<h2>' . $value['_label'] . '</h2>'; }
+                    unset($value['_label']);
+                    unset($value['_name']);
+                    unset($value['_class']);
+                    unset($value['_error']);
+                    // Recurse
+                    $this->iterateFormFields($value);
+                    $this->output .= '</fieldset>';
+ 					break;
                 case 'hidden':
                     $this->addHidden($value);
                     break;
@@ -197,13 +208,18 @@ class form extends router
     {
         $this->output .= '<div class="input-form input-' . $vars['_name'] . "\">\n";
         if (isset($vars['_label'])) {
+        	$underlabel = '';
+            if (isset($vars['_underlabel'])) {
+            	$underlabel .= '<span>' . $vars['_underlabel'] . '</span>';
+            }
+			
             $extraoutput = '';
             // Tooltip
             if (isset($vars['_description'])) {
-                $extraoutput = '<a href="#" class="tooltip" title="' . $vars['_description'] . '"><span class="infoicon"></span></a>';
+                $extraoutput .= '<a href="#" class="tooltip" title="' . $vars['_description'] . '"><span class="infoicon"></span></a>';
             }
 
-            $this->output .= '<label for="' . $vars['_name'] . '">' . $vars['_label'] . ": </label>$extraoutput\n";
+            $this->output .= '<label for="' . $vars['_name'] . '">' . $vars['_label'] . ": $underlabel</label>$extraoutput\n";
         }
     }
 	
