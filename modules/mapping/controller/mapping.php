@@ -163,7 +163,6 @@ class controllerMapping extends router
     {
         $form = new form($this->form_create_field($args));
         $results = $form->getResults();
-
         $state = self::$query_loader->call('_cluster/state', 'GET');
 
         $properties[$results['name']]['type'] = $results['type'];
@@ -268,12 +267,11 @@ class controllerMapping extends router
             $parts = explode('---', $results['nest_parent']);
 
             if (isset($parts[1]) && $parts[1] == 'multi_field') {
-                $newproperties = $properties;
-                unset($properties);
-                $properties[$parts[0]]['fields'] = $newproperties;
+            	$nestedparts = explode('.', $parts[0]);
+				$properties = self::$query_loader->putNested($nestedparts, $properties, 'fields');
             } else {
-                $array = explode('.', $parts[0]);
-                $properties = self::$query_loader->putNested($array, $properties);
+                $nestedparts = explode('.', $parts[0]);
+                $properties = self::$query_loader->putNested($nestedparts, $properties);
             }
 
         }

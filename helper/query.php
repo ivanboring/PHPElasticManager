@@ -321,9 +321,13 @@ class Query extends router
             $output .= '<li><strong>' . $key . '</strong><ul>';
 
             foreach ($value as $formkey => $formvalue) {
-                if ($formkey != 'properties') {
+				if ($formkey == 'fields') {
+					$value['properties'] = $value['fields'];
+				}
+				elseif ($formkey != 'properties') {
                     $output .= '<li><strong>' . $formkey . ':</strong>' . $formvalue . '</li>';
                 }
+				
             }
 
             if (isset($value['properties'])) {
@@ -344,13 +348,13 @@ class Query extends router
 	 *  
      * @return array Nested structure
      */
-    public function putNested($array, $properties)
+    public function putNested($array, $properties, $type = 'properties')
     {
         if (count($array) == 1) {
-            $output[$array[0]]['properties'] = $properties;
+            $output[$array[0]][$type] = $properties;
         } else {
             $part = array_shift($array);
-            $output[$part]['properties'] = $this->putNested($array, $properties);
+            $output[$part]['properties'] = $this->putNested($array, $properties, $type);
         }
 
         return $output;
@@ -365,7 +369,7 @@ class Query extends router
 	 *  
      * @return array Nested structure
      */
-    public function getNested($properties, &$array = array(), $level = 0)
+    public function getNested($properties, &$array = array(), $level = 0, $prefix = '')
     {
         $nested = array();
 
@@ -374,17 +378,19 @@ class Query extends router
         if (isset($properties['properties'])) {
             foreach ($properties['properties'] as $name => $values) {
                 if (isset($values['properties']) || $values['type'] == 'nested' || $values['type'] == 'object' || $values['type'] == 'multi_field') {
-                    $array[] = $name;
-                    $this->getNested($values, $array, 1);
+                    if (!isset($values['type'])) $values['type'] = 'object';
+                   	$array[][$values['type']] = $prefix . $name;
+                    $this->getNested($values, $array, 1, $prefix .  $name . '.');
                 }
                 if (!$level) {
                     $prefix = '';
 					if(isset($array))
 					{
-	                    foreach ($array as $key) {
-	                        $nested[$prefix . $key . '---' . $values['type']] = $prefix . $key;
-	                        $prefix .= $key . '.';
-	                    }
+	                    foreach ($array as $arraypart) {
+	                    	foreach ($arraypart as $type => $key) {
+	  							$nested[$key . '---' . $type] = $prefix . $key;
+							}
+						}
 					}
                     unset($array);
                 }
