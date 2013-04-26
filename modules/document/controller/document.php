@@ -599,6 +599,7 @@ class controllerDocument extends router
 							1 => 'true',
 							0 => 'false'
 						);
+						$form['nested'][$newname]['_diffrentiator'] = $args[3];
                         break;						
                     case 'integer':
                         $form['nested'][$newname]['_type'] = 'textField';

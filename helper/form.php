@@ -581,7 +581,8 @@ class form extends router
         foreach ($vars['_options'] as $key => $value) {
             $checked = '';
             if(isset($vars['_value']) && $vars['_value'] == $key) $checked = 'checked';
-            $this->output .= '<input type="radio" ' . $checked . ' name="' . $vars['_name'] . '" id="' . $key . '" value="' . $key . '"><label for="' . $key . '">' . $value . '</label>';
+			$id = isset($vars['_diffrentiator']) ? $vars['_diffrentiator'] . $key : $key;
+            $this->output .= '<input type="radio" ' . $checked . ' name="' . $vars['_name'] . '" id="' . $id . '" value="' . $key . '"><label for="' . $id . '">' . $value . '</label>';
         }
 
         $this->suffixSkeleton($vars);
