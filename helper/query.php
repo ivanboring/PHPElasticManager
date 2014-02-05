@@ -325,7 +325,7 @@ class Query extends router
 					$value['properties'] = $value['fields'];
 				}
 				elseif ($formkey != 'properties') {
-                    $output .= '<li><strong>' . $formkey . ':</strong>' . $formvalue . '</li>';
+                    $output .= '<li><strong>' . $formkey . ':</strong>' . print_r($formvalue,1)  . '</li>';
                 }
 				
             }
