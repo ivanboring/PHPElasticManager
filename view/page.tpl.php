@@ -23,7 +23,7 @@
     <div id="main">
         <?php echo l('', '<span><div class="logo"></div></span>'); ?>
         <div class="check">
-            <input type="checkbox" id="validateQuery" <?php echo $vars['validate']; ?>><label for="validateQuery">Validate each query</label>
+            <input type="checkbox" id="validateQuery" <?php echo isset($vars['validate'])?$vars['validate']:""; ?>><label for="validateQuery">Validate each query</label>
         </div>
     </div>
 </div>
@@ -41,12 +41,25 @@
 
 <div id="main">
     <div id="leftmenu" class="leftMenu">
-    <?php echo $vars['leftblock']; ?>
+    <?php echo isset($vars['leftblock'])?$vars['leftblock']:""; ?>
     </div>
 
     <div id="content" class="content">
     <h2><?php echo $vars['title']; ?></h2>
-    <?php if($vars['response_message']): ?>
+    
+
+<?php
+$messages = router::getMessages();
+if(!empty($messages)){
+        foreach($messages as $msg){
+                echo $msg;
+        }
+}
+?>
+
+
+
+	<?php if($vars['response_message']): ?>
         <div class="response_message">
             <pre><?php echo $vars['response_message']; ?></pre>
         </div>

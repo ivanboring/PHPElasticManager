@@ -15,7 +15,8 @@ class controllerIndex extends router
      */	
     public function page_refresh($args)
     {
-        self::$query_loader->callWithCheck($args[0] . '/_refresh', 'POST', null, 'index/edit/' . $args[0]);
+        self::appendMessage("Index refreshed!");
+	self::$query_loader->callWithCheck($args[0] . '/_refresh', 'POST', null, 'index/edit/' . $args[0]);
     }
 
     /**
