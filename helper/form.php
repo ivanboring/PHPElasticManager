@@ -43,7 +43,8 @@ class form extends router
 
         // Create a form id that can be used for validation
         $_SESSION['form_id_' . $name] = md5(time() . $name);
-
+	$this->output = isset($this->output)?$this->output:"";
+	
         $this->output .= '<form id="' . $name . '" name="' . $name . '" ';
         $this->output .= 'action="?q=' . $_GET['q'] . '" ';
         $this->output .= "method =\"POST\">\n";

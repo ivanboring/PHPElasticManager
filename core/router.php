@@ -30,6 +30,22 @@ class Router
      */		
     protected static $config = array();
 
+
+
+
+	static function appendMessage($message){
+		$_SESSION["messages"] = isset($_SESSION["messages"])?array():$_SESSION["messages"];
+		$_SESSION["messages"][] = $message;
+	}
+	
+	static function getMessages(){
+		if(isset($_SESSION["messages"])){
+			$messages = $_SESSION["messages"];
+			unset($_SESSION["messages"]);
+			return $messages;
+		}
+		return FALSE;
+	}
 	/**
      * The main routing function. Keeps track
 	 * on which controllers and views to run.
